@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>音声認識カラオケ・モノクロ版</title>
+  <style>
+    /* ── モノクロ（白黒）テーマ ───────────────────────────── */
+    :root{
+      --bg:#ffffff;
+      --ink:#111111;         /* 文字色 */
+      --muted:#6b7280;       /* 補助文字 */
+      --panel:#f5f5f5;       /* パネル背景 */
+      --border:#e5e7eb;      /* 枠線 */
+      --active-bg:#111111;   /* 現在の単語: 黒背景・白文字 */
+      --past-ink:#9ca3af;    /* 既読: 薄いグレー */
+      /* Accent palette (modern teal/cyan) */
+      --accent-600: #0f766e;
+      --accent-500: #0ea5a4; /* primary accent */
+      --accent-300: #67e8f9;
+      --accent-100: #ecfeff;
+      --accent-shadow: rgba(14,165,164,0.18);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
+      color:var(--ink); background:var(--bg);
+    }
+    .wrapper{max-width:1100px; margin:24px auto 40px; padding:0 16px}
+    header{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px}
+    header h1{font-size:20px; font-weight:700; margin:0; letter-spacing:.02em}
+    header .sub{color:var(--muted); font-size:12px}
+
+    .layout{display:flex; flex-direction:column; gap:18px; align-items:stretch}
+
+    .card{background:var(--panel); border:1px solid var(--border); border-radius:14px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 6px 20px rgba(17,17,17,.04)}
+    .card .head{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:14px 18px; border-bottom:1px solid var(--border)}
+    .card .head h2{font-size:15px; margin:0; color:#374151; letter-spacing:.01em}
+    .card .body{padding:16px 18px; display:flex; flex-direction:column; gap:14px}
+    .card--reader .body{gap:16px}
+
+    textarea{
+      width:100%; min-height:260px; max-height:520px; resize:vertical; border-radius:10px; border:1px solid var(--border); background:#fff; color:var(--ink);
+      padding:14px 16px; line-height:1.7; outline:none; font-size:15px; white-space:pre-wrap;
+      box-shadow:0 1px 0 rgba(17,17,17,.04);
+    }
+
+    .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+    .controls button{cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:0 16px; appearance:none; border-radius:10px; border:1px solid var(--border); background:#fff; color:var(--ink); height:36px; box-shadow:0 1px 0 rgba(17,17,17,.05); transition:transform .2s ease, box-shadow .2s ease, background-color .2s ease}
+    .controls button:hover{transform:translateY(-1px); box-shadow:0 8px 16px rgba(17,17,17,.08); background:#fffdfa}
+    .controls button:active{transform:translateY(0); box-shadow:0 2px 6px rgba(17,17,17,.08)}
+    .controls button:disabled{opacity:.55; cursor:not-allowed; transform:none; box-shadow:0 1px 0 rgba(17,17,17,.05)}
+    .controls--options{display:flex; flex-wrap:wrap; gap:18px; align-items:stretch}
+    .control{flex:1 1 190px; display:flex; flex-direction:column; gap:10px; font-size:12px; color:#4b5563; min-width:160px}
+    .control-title{font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:#6b7280}
+    .control-body{display:flex; align-items:center; gap:10px; min-height:44px; padding:8px 12px; border-radius:12px; border:1px solid var(--border); background:#fff; box-shadow:0 1px 0 rgba(17,17,17,.05); transition:box-shadow .25s ease, transform .25s ease}
+    .control-body:focus-within{box-shadow:0 0 0 3px rgba(17,17,17,.08); transform:translateY(-1px)}
+    .control-select{appearance:none; border:none; background:transparent; color:var(--ink); width:100%; font-size:13px; font-weight:500; outline:none}
+    .control-value{font-size:11px; color:var(--muted); letter-spacing:.02em; min-width:48px; text-align:right; margin-left:auto}
+  .control-body--range{padding:8px 12px; justify-content:space-between; align-items:center}
+  /* Make input tall enough to contain the thumb (thumb 18px + 3px border each side = 24px) */
+  .control-body--range input[type="range"]{flex:1; height:24px; -webkit-appearance:none; appearance:none; cursor:pointer; background:transparent; margin:0; padding:0; display:block; align-self:center}
+  /* Value label vertically center */
+  .control-value{font-size:11px; color:var(--muted); letter-spacing:.02em; min-width:48px; text-align:right; margin-left:auto; display:inline-flex; align-items:center}
+  /* Thumb */
+  /* Thumb: nudge up slightly to visually center inside padded container */
+  /* Tweak: use a small negative translateY to visually center the thumb.
+    -50% overshot on some browsers; -6px is a middle-ground that works well
+    across common DPI/zoom settings. If needed we can switch to box-shadow
+    for the outer ring to avoid changing element size. */
+  .control-body--range input[type="range"]::-webkit-slider-thumb{appearance:none; width:18px; height:18px; border-radius:50%; background:linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.95) 100%); border:3px solid var(--accent-500); box-shadow:0 6px 18px var(--accent-shadow); transition:transform .18s ease; transform:translateY(-6px)}
+  .control-body--range input[type="range"]::-webkit-slider-thumb:hover{transform:translateY(-6px) scale(1.06)}
+  /* Firefox */
+  .control-body--range input[type="range"]::-moz-range-thumb{width:18px; height:18px; border-radius:50%; background:linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.95) 100%); border:3px solid var(--accent-500); box-shadow:0 6px 18px var(--accent-shadow); transition:transform .18s ease; transform:translateY(-6px)}
+  .control-body--range input[type="range"]::-moz-range-thumb:hover{transform:translateY(-6px) scale(1.06)}
+  /* Track */
+  .control-body--range input[type="range"]::-webkit-slider-runnable-track{height:6px; background:var(--accent-100); border-radius:999px}
+  .control-body--range input[type="range"]::-moz-range-track{height:6px; background:var(--accent-100); border-radius:999px}
+    .control-body--toggle{justify-content:space-between; gap:16px}
+    .control-body--toggle .toggle{width:100%; display:inline-flex; align-items:center; gap:12px; position:relative; cursor:pointer}
+    .toggle input{position:absolute; opacity:0; width:0; height:0}
+    .toggle-slider{width:38px; height:22px; border-radius:999px; background:#d1d5db; position:relative; transition:background-color .25s ease}
+    .toggle-slider::after{content:''; position:absolute; left:3px; top:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:transform .25s cubic-bezier(.4,.0,.2,1), background-color .25s ease, box-shadow .25s ease}
+  .toggle input:checked + .toggle-slider{background:var(--accent-500)}
+  .toggle input:checked + .toggle-slider::after{transform:translateX(16px); background:#fff; box-shadow:0 2px 10px var(--accent-shadow)}
+    .toggle-label{font-size:12px; color:#374151; font-weight:500; transition:color .2s ease}
+  .toggle input:checked + .toggle-slider + .toggle-label{color:var(--accent-500)}
+    .control-body--segment{padding:6px; gap:6px; justify-content:flex-start}
+    .segment{flex:1; position:relative}
+    .segment input{position:absolute; opacity:0; inset:0; cursor:pointer}
+    .segment span{display:block; padding:8px 14px; border-radius:18px; text-align:center; font-size:12px; font-weight:500; color:#475569; background:#f1f5f9; border:1px solid transparent; transition:all .25s ease, color .2s ease}
+    .segment span:hover{background:#e2e8f0}
+  .segment input:focus-visible + span{box-shadow:0 0 0 3px rgba(14,165,164,.18); outline:none}
+  .segment input:checked + span{background:var(--accent-500); color:#fff; box-shadow:0 8px 28px var(--accent-shadow); border-color:rgba(14,165,164,.55)}
+    .controls--mic{gap:12px; flex-wrap:wrap}
+    .controls--mic button{min-width:140px; justify-content:center}
+
+    /* 読み上げ表示（音声認識ハイライトのみ） */
+    .reader{flex:1; min-height:320px; line-height:1.9; font-size:18px; letter-spacing:.01em; white-space:pre-wrap; background:#fff; border:1px solid var(--border); border-radius:10px; padding:18px; overflow:auto; box-shadow:inset 0 1px 0 rgba(17,17,17,.04)}
+    .word{padding:0 .08em; border-radius:6px; transition:background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .25s ease}
+    .word:hover{transform:translateY(-1px); box-shadow:0 2px 8px rgba(17,17,17,.08)}
+    .word.active{background:var(--active-bg); color:#fff; box-shadow:0 0 0 2px #00000014 inset; animation:highlightPulse .8s ease}
+    .word.past{color:var(--past-ink); opacity:.85}
+
+    .hint{font-size:12px; color:var(--muted); margin-top:8px}
+    .kbd{border:1px solid var(--border); padding:.1em .4em; border-radius:6px; background:#fff; font-family:ui-monospace, SFMono-Regular, Menlo, monospace}
+    footer{margin-top:18px; color:var(--muted); font-size:12px}
+    a{color:inherit; text-decoration:underline}
+
+    .card{transition:transform .25s ease, box-shadow .25s ease}
+    .card:hover{transform:translateY(-4px); box-shadow:0 18px 38px rgba(17,17,17,.08)}
+    .reader{transition:box-shadow .25s ease}
+    .reader:focus-within, .reader:hover{box-shadow:inset 0 2px 10px rgba(17,17,17,.08)}
+
+    @keyframes highlightPulse{
+      0%{box-shadow:0 0 0 0 rgba(17,17,17,.2); transform:scale(1)}
+      60%{box-shadow:0 0 0 8px rgba(17,17,17,0); transform:scale(1.02)}
+      100%{box-shadow:0 0 0 0 rgba(17,17,17,0); transform:scale(1)}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <header>
+      <h1>音声認識カラオケ・モノクロ版</h1>
+      <div class="sub">Web Speech API（SpeechRecognition）のみで単語ハイライト。読み上げ機能はありません。</div>
+    </header>
+
+    <div class="layout">
+      <section class="card card--input">
+        <div class="head">
+          <h2>テキスト（スクリプトを貼り付け）</h2>
+          <div class="controls">
+            <button id="loadSample">サンプル</button>
+            <button id="resetHL">ハイライトをリセット</button>
+          </div>
+        </div>
+        <div class="body">
+          <textarea id="textInput" spellcheck="false" placeholder="ここに英文スクリプトを貼り付けてください"></textarea>
+          <div class="hint">単語単位で分割し、発話に応じて <b>現在の単語（黒反転）</b> と <b>既読（薄灰）</b> を表示します。任意の単語をクリックすると、その位置から再開できます。</div>
+        </div>
+      </section>
+
+      <section class="card card--reader">
+        <div class="head">
+          <h2>音声認識 & ハイライト</h2>
+          <div class="controls controls--options">
+            <label class="control">
+              <span class="control-title">Lang</span>
+              <div class="control-body">
+                <select id="recLang" class="control-select">
+                  <option value="en-US">en-US</option>
+                  <option value="en-GB">en-GB</option>
+                  <option value="ja-JP">ja-JP</option>
+                </select>
+              </div>
+            </label>
+            <label class="control">
+              <span class="control-title">Font</span>
+              <div class="control-body control-body--range">
+                <input id="fontSize" type="range" min="16" max="36" step="1" value="18">
+                <span id="fontVal" class="control-value">18px</span>
+              </div>
+            </label>
+            <label class="control">
+              <span class="control-title">Line</span>
+              <div class="control-body control-body--range">
+                <input id="lineH" type="range" min="1.2" max="2.2" step="0.05" value="1.9">
+                <span id="lineVal" class="control-value">1.90</span>
+              </div>
+            </label>
+            <label class="control">
+              <span class="control-title">Mode</span>
+              <div class="control-body control-body--segment">
+                <label class="segment">
+                  <input type="radio" name="recMode" value="precise" checked>
+                  <span>正確</span>
+                </label>
+                <label class="segment">
+                  <input type="radio" name="recMode" value="speed">
+                  <span>高速</span>
+                </label>
+              </div>
+            </label>
+            <div class="control control--toggle">
+              <span class="control-title">Auto Scroll</span>
+              <div class="control-body control-body--toggle">
+                <label class="toggle">
+                  <input type="checkbox" id="autoScroll" checked>
+                  <span class="toggle-slider" aria-hidden="true"></span>
+                  <span class="toggle-label">自動スクロール</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="controls controls--mic">
+            <button id="btnMicStart">🎤 開始 (<span class="kbd">S</span>)</button>
+            <button id="btnMicStop" disabled>■ 停止</button>
+          </div>
+          <div id="reader" class="reader" aria-live="polite"></div>
+          <div class="hint">ステータス: <span id="recStatus">未開始</span></div>
+          <div class="hint">ショートカット: <span class="kbd">S</span> = 開始/停止, <span class="kbd">←</span>/<span class="kbd">→</span> = 1語戻る/進む</div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <div>対応: Chrome / Edge（SpeechRecognition）。Safari 一部未対応。初回はマイク許可が必要です。</div>
+    </footer>
+  </div>
+
+  <script>
+  // ====== 要素参照 ======
+  const textInput = document.getElementById('textInput');
+  const reader = document.getElementById('reader');
+  const loadSample = document.getElementById('loadSample');
+  const resetHL = document.getElementById('resetHL');
+  const recLang = document.getElementById('recLang');
+  const btnMicStart = document.getElementById('btnMicStart');
+  const btnMicStop = document.getElementById('btnMicStop');
+  const recStatus = document.getElementById('recStatus');
+  const autoScroll = document.getElementById('autoScroll');
+  const fontSize = document.getElementById('fontSize');
+  const lineH = document.getElementById('lineH');
+  const fontVal = document.getElementById('fontVal');
+  const lineVal = document.getElementById('lineVal');
+  const recModeRadios = document.querySelectorAll('input[name=\"recMode\"]');
+
+  // ====== 音声認識（読み上げなし） ======
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  // ====== 状態 ======
+  let tokens = [];           // {text, type: 'word'|'ws', start}
+  let wordStarts = [];       // word token の開始インデックス
+  let currentWord = -1;      // 現在ハイライトしている word index
+  let recognizing = false;   // mic 状態
+  let lastMicIndex = -1;     // マイクで進んだインデックス
+  let recognizer = null;
+  let normalizedWords = [];
+  let lastResultKey = '';
+  let unmatchedCount = 0;
+  let pendingGap = false;
+  let lastSourceText = '';
+  let shouldAutoRestart = false;
+  let userStopRequested = false;
+  let restartTimer = null;
+  let idleTimer = null;
+  let lastTranscriptTimestamp = 0;
+  let recognitionSession = {resume:false, fromRestart:false};
+  let permissionPrimed = false;
+  let recognitionMode = 'precise';
+  let lastSpeedNorm = '';
+
+  // ====== ユーティリティ ======
+  function normalizeForMatch(str){
+    try{
+      return str.toLowerCase().replace(/[\u2019\u2018]/g, "'")
+        .replace(/[^\p{L}\p{N}'\s]+/gu, ' ').replace(/\s+/g, ' ').trim();
+    }catch(e){
+      return str.toLowerCase().replace(/[^a-z0-9'\s]+/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+  }
+
+  function tokenize(text){
+    tokens = []; wordStarts = []; normalizedWords = []; lastResultKey = ''; unmatchedCount = 0; pendingGap = false;
+    shouldAutoRestart = false; userStopRequested = false;
+    clearRestartTimer(); clearIdleGuard();
+    lastTranscriptTimestamp = 0;
+    lastSpeedNorm = '';
+    let i = 0;
+    while(i < text.length){
+      if(/\s/.test(text[i])){
+        let j = i+1; while(j < text.length && /\s/.test(text[j])) j++;
+        tokens.push({text:text.slice(i,j), type:'ws', start:i});
+        i = j;
+      }else{
+        let j = i+1; while(j < text.length && !/\s/.test(text[j])) j++;
+        const wordText = text.slice(i,j);
+        tokens.push({text:wordText, type:'word', start:i});
+        wordStarts.push(i);
+        normalizedWords.push(normalizeForMatch(wordText));
+        i = j;
+      }
+    }
+    lastSourceText = text;
+  }
+
+  function render(){
+    const frag = document.createDocumentFragment();
+    tokens.forEach((tok, k)=>{
+      if(tok.type === 'word'){
+        const span = document.createElement('span');
+        span.className = 'word';
+        span.dataset.i = wordIndexFromTokenIndex(k);
+        span.textContent = tok.text;
+        span.addEventListener('click', ()=>{ highlightTo(parseInt(span.dataset.i,10)); });
+        frag.appendChild(span);
+      }else{
+        frag.appendChild(document.createTextNode(tok.text));
+      }
+    });
+    reader.innerHTML = '';
+    reader.appendChild(frag);
+    currentWord = -1;
+    lastMicIndex = -1;
+    pendingGap = false;
+    unmatchedCount = 0;
+  }
+
+  function wordIndexFromTokenIndex(tokenIdx){
+    let count = 0; for(let i=0;i<=tokenIdx;i++) if(tokens[i].type==='word') count++; return count-1;
+  }
+
+  function highlightTo(index){
+    const wordSpans = reader.querySelectorAll('.word');
+    if(index < 0 || index >= wordSpans.length) return;
+    for(let i=0;i<wordSpans.length;i++){
+      wordSpans[i].classList.remove('active');
+      if(i < index) wordSpans[i].classList.add('past'); else wordSpans[i].classList.remove('past');
+    }
+    wordSpans[index].classList.add('active');
+    currentWord = index;
+    lastMicIndex = index;
+    pendingGap = false;
+    unmatchedCount = 0;
+    if(autoScroll.checked){ wordSpans[index].scrollIntoView({block:'center', behavior:'smooth'}); }
+  }
+
+  function clearRestartTimer(){
+    if(restartTimer){ clearTimeout(restartTimer); restartTimer = null; }
+  }
+
+  function clearIdleGuard(){
+    if(idleTimer){ clearTimeout(idleTimer); idleTimer = null; }
+  }
+
+  function scheduleIdleGuard(){
+    clearIdleGuard();
+    idleTimer = setTimeout(()=>{
+      if(!recognizing || !shouldAutoRestart || !recognizer) return;
+      const elapsed = Date.now() - lastTranscriptTimestamp;
+      if(elapsed >= 9000){
+        pendingGap = true;
+        recognizer.stop();
+      }else{
+        scheduleIdleGuard();
+      }
+    }, 4000);
+  }
+
+  async function primeMicPermission(){
+    if(permissionPrimed) return true;
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      stream.getTracks().forEach(track=>track.stop());
+      permissionPrimed = true;
+      return true;
+    }catch(err){
+      console.warn('Microphone permission request failed', err);
+      return false;
+    }
+  }
+
+  function levenshtein(a,b){
+    const m = a.length, n = b.length;
+    if(m === 0) return n;
+    if(n === 0) return m;
+    const dp = new Array(n + 1);
+    for(let j=0;j<=n;j++) dp[j] = j;
+    for(let i=1;i<=m;i++){
+      let prev = dp[0];
+      dp[0] = i;
+      for(let j=1;j<=n;j++){
+        const temp = dp[j];
+        if(a[i-1] === b[j-1]) dp[j] = prev;
+        else dp[j] = Math.min(prev, dp[j-1], dp[j]) + 1;
+        prev = temp;
+      }
+    }
+    return dp[n];
+  }
+
+  function scoreWordMatch(a,b){
+    if(!a || !b) return -100;
+    if(a === b) return 3;
+    if(a.startsWith(b) || b.startsWith(a)) return 2;
+    const dist = levenshtein(a,b);
+    const minLen = Math.min(a.length, b.length);
+    if(dist === 1) return 2;
+    if(dist === 2 && minLen > 4) return 1.5;
+    if(dist <= Math.ceil(minLen / 2) && minLen >= 6) return 1;
+    return -100;
+  }
+
+  function findNextWordIndex(parts, baseIndex, lookAhead){
+    const maxContext = Math.min(4, parts.length);
+    const backtrack = 3;
+    for(let context = maxContext; context >= 1; context--){
+      const slice = parts.slice(-context);
+      const start = Math.max(0, baseIndex + 1 - backtrack);
+      const end = Math.min(normalizedWords.length - context + 1, baseIndex + 1 + lookAhead);
+      if(end <= start) continue;
+      let bestScore = -100;
+      let bestIdx = -1;
+      for(let i=start; i<end; i++){
+        let score = 0;
+        for(let j=0; j<context; j++){
+          const candidate = normalizedWords[i+j];
+          const wordScore = scoreWordMatch(candidate, slice[j]);
+          if(wordScore < 0){ score = -100; break; }
+          score += wordScore;
+        }
+        if(score > bestScore){
+          bestScore = score;
+          bestIdx = i + context - 1;
+        }
+      }
+      const minScore = context * 1.8;
+      if(bestIdx !== -1 && bestScore >= minScore){
+        return bestIdx;
+      }
+    }
+    return -1;
+  }
+
+  function findBestGlobalMatch(parts, baseIndex){
+    if(normalizedWords.length === 0) return -1;
+    const maxContext = Math.min(4, parts.length);
+    const start = Math.max(0, baseIndex + 1);
+    let bestIdx = -1;
+    let bestScore = -100;
+    for(let context = maxContext; context >= 1; context--){
+      const slice = parts.slice(-context);
+      const end = normalizedWords.length - context + 1;
+      if(end <= start) continue;
+      for(let i=start; i<end; i++){
+        let score = 0;
+        for(let j=0; j<context; j++){
+          const candidate = normalizedWords[i+j];
+          const wordScore = scoreWordMatch(candidate, slice[j]);
+          if(wordScore < 0){ score = -100; break; }
+          score += wordScore;
+        }
+        if(score > -100){
+          const distance = i - start;
+          const penalty = distance > 0 ? Math.log2(distance + 2) : 0;
+          const finalScore = score - penalty;
+          if(finalScore > bestScore){
+            bestScore = finalScore;
+            bestIdx = i + context - 1;
+          }
+        }
+      }
+      if(bestIdx !== -1 && bestScore >= context * 1.5){
+        return bestIdx;
+      }
+    }
+    return bestScore >= 2 ? bestIdx : -1;
+  }
+
+  function indexFromChar(charIndex){
+    let lo = 0, hi = wordStarts.length - 1, ans = 0;
+    while(lo <= hi){
+      const mid = (lo + hi) >> 1;
+      if(wordStarts[mid] <= charIndex){ ans = mid; lo = mid + 1; }
+      else{ hi = mid - 1; }
+    }
+    return ans;
+  }
+
+  // ====== マイク追従（簡易） ======
+  function ensureRecognizer(){
+    if(recognizer) return;
+    recognizer = new SpeechRecognition();
+    recognizer.continuous = true;
+    recognizer.interimResults = true;
+    recognizer.onstart = handleRecognizerStart;
+    recognizer.onend = handleRecognizerEnd;
+    recognizer.onerror = handleRecognizerError;
+    recognizer.onresult = handleRecognizerResult;
+  }
+
+  async function micStart(options = {}){
+    const { resume = false, fromRestart = false } = options;
+    if(!SpeechRecognition){ alert('このブラウザは SpeechRecognition に対応していません。Chrome/Edge をお試しください。'); return; }
+    if(recognizing) return;
+
+    const text = textInput.value.trim();
+    if(!text){ alert('テキストを入力してください。'); return; }
+    if(!resume){
+      if(text !== lastSourceText || tokens.length === 0){
+        tokenize(text);
+        render();
+      }else if(!reader.childNodes.length){
+        render();
+      }
+    }
+
+    const permissionOk = await primeMicPermission();
+    if(!permissionOk && !permissionPrimed){
+      recStatus.textContent = 'マイクが許可されていません';
+      return;
+    }
+
+    clearRestartTimer();
+    clearIdleGuard();
+    shouldAutoRestart = true;
+    userStopRequested = false;
+    recognitionSession = {resume, fromRestart};
+
+    ensureRecognizer();
+    recognizer.lang = recLang.value;
+
+    try{
+      recognizer.start();
+    }catch(err){
+      console.error(err);
+      recStatus.textContent = '開始できません: ' + err.message;
+      btnMicStart.disabled = false;
+      btnMicStop.disabled = true;
+      shouldAutoRestart = false;
+    }
+  }
+
+  function handleRecognizerStart(){
+    recognizing = true;
+    btnMicStart.disabled = true;
+    btnMicStop.disabled = false;
+    pendingGap = false;
+    unmatchedCount = 0;
+    lastTranscriptTimestamp = Date.now();
+    scheduleIdleGuard();
+    const modePrefix = recognitionMode === 'speed' ? '【高速】' : '【正確】';
+    if(recognitionSession.fromRestart){
+      recStatus.textContent = `${modePrefix}再開しました。続けて話してください`;
+    }else if(!recognitionSession.resume){
+      recStatus.textContent = `${modePrefix}取得中… 話し始めてください`;
+    }else{
+      recStatus.textContent = `${modePrefix}再接続しました`;
+    }
+  }
+
+  function handleRecognizerEnd(){
+    recognizing = false;
+    clearIdleGuard();
+    if(userStopRequested || !shouldAutoRestart){
+      btnMicStart.disabled = false;
+      btnMicStop.disabled = true;
+      lastResultKey = '';
+      lastSpeedNorm = '';
+      pendingGap = false;
+      unmatchedCount = 0;
+      recStatus.textContent = userStopRequested ? '停止しました' : '待機中';
+      userStopRequested = false;
+      shouldAutoRestart = false;
+      return;
+    }
+    clearRestartTimer();
+    recStatus.textContent = '⏳ 無音が続いたため再接続しています…';
+    restartTimer = setTimeout(()=>{ micStart({resume:true, fromRestart:true}); }, 180);
+  }
+
+  function handleRecognizerError(ev){
+    console.error(ev);
+    recStatus.textContent = 'エラー: ' + ev.error;
+    if(ev.error === 'not-allowed' || ev.error === 'service-not-allowed'){
+      shouldAutoRestart = false;
+      btnMicStart.disabled = false;
+      btnMicStop.disabled = true;
+    }
+  }
+
+  function handleRecognizerResult(ev){
+    lastTranscriptTimestamp = Date.now();
+    scheduleIdleGuard();
+    let transcript = '';
+    let hasFinal = false;
+    for(let i=ev.resultIndex; i<ev.results.length; i++){
+      transcript += ev.results[i][0].transcript;
+      if(ev.results[i].isFinal) hasFinal = true;
+    }
+    const norm = normalizeForMatch(transcript);
+    if(!norm){
+      recStatus.textContent = '聞き取り中: ' + transcript;
+      return;
+    }
+    const parts = norm.split(' ').filter(Boolean);
+    if(parts.length === 0){
+      recStatus.textContent = '聞き取り中: ' + transcript;
+      return;
+    }
+
+    if(recognitionMode === 'speed'){
+      if(norm === lastSpeedNorm && !hasFinal){
+        recStatus.textContent = '聞き取り中: ' + transcript;
+        return;
+      }
+      lastSpeedNorm = norm;
+      if(normalizedWords.length === 0){
+        recStatus.textContent = '高速モード: テキストがありません';
+        return;
+      }
+      const advance = Math.max(1, Math.min(parts.length, 3));
+      let target = currentWord;
+      if(target < 0) target = 0;
+      else target = Math.min(target + advance, normalizedWords.length - 1);
+      highlightTo(target);
+      recStatus.textContent = (hasFinal ? '高速認識: ' : '高速処理中: ') + transcript;
+      return;
+    }
+
+    if(norm === lastResultKey && !hasFinal){
+      recStatus.textContent = '聞き取り中: ' + transcript;
+      return;
+    }
+    lastResultKey = norm;
+
+    let baseIndex = Math.max(currentWord, lastMicIndex);
+    if(baseIndex < -1) baseIndex = -1;
+    const lookAhead = hasFinal ? 22 : 14;
+    const targetIndex = findNextWordIndex(parts, baseIndex, lookAhead);
+    if(targetIndex !== -1 && (targetIndex >= currentWord || hasFinal || currentWord === -1)){
+      highlightTo(targetIndex);
+    }else{
+      unmatchedCount++;
+      const needsRecovery = hasFinal || unmatchedCount >= 2 || pendingGap;
+      if(needsRecovery){
+        const globalIndex = findBestGlobalMatch(parts, Math.max(currentWord, lastMicIndex));
+        if(globalIndex !== -1 && (globalIndex >= currentWord || currentWord === -1)){
+          highlightTo(globalIndex);
+        }else if(hasFinal && normalizedWords.length){
+          const softAdvance = Math.min((currentWord === -1 ? 0 : currentWord + 1), normalizedWords.length - 1);
+          if(softAdvance > currentWord){
+            highlightTo(softAdvance);
+          }else{
+            pendingGap = true;
+          }
+        }else{
+          pendingGap = true;
+        }
+      }else{
+        pendingGap = true;
+      }
+    }
+
+    recStatus.textContent = (hasFinal ? '認識: ' : '聞き取り中: ') + transcript;
+  }
+  function micStop(){
+    userStopRequested = true;
+    shouldAutoRestart = false;
+    clearRestartTimer();
+    clearIdleGuard();
+    if(recognizer){
+      try{ recognizer.stop(); }catch(e){ console.warn(e); }
+    }
+    lastResultKey = '';
+    lastSpeedNorm = '';
+    pendingGap = false;
+    unmatchedCount = 0;
+  }
+
+  // ====== UI 追加: 文字サイズ/行間 & ショートカット ======
+  fontSize.addEventListener('input', ()=>{ reader.style.fontSize = fontSize.value + 'px'; fontVal.textContent = fontSize.value + 'px'; });
+  lineH.addEventListener('input', ()=>{ reader.style.lineHeight = lineH.value; lineVal.textContent = parseFloat(lineH.value).toFixed(2); });
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.key.toLowerCase() === 's'){ e.preventDefault(); recognizing ? micStop() : micStart(); }
+    if(e.key === 'ArrowRight'){ e.preventDefault(); highlightTo(Math.min(currentWord+1, reader.querySelectorAll('.word').length-1)); }
+    if(e.key === 'ArrowLeft'){ e.preventDefault(); highlightTo(Math.max(currentWord-1, 0)); }
+  });
+
+  // ====== そのほか ======
+  btnMicStart.addEventListener('click', micStart);
+  btnMicStop.addEventListener('click', micStop);
+  resetHL.addEventListener('click', ()=>{ reader.querySelectorAll('.word').forEach(s=>{s.classList.remove('active','past')}); currentWord=-1; lastMicIndex=-1; lastResultKey=''; lastSpeedNorm=''; unmatchedCount=0; pendingGap=false; });
+  recModeRadios.forEach(radio=>{
+    radio.addEventListener('change', ()=>{
+      if(!radio.checked) return;
+      recognitionMode = radio.value;
+      lastResultKey = '';
+      lastSpeedNorm = '';
+      unmatchedCount = 0;
+      pendingGap = false;
+      recStatus.textContent = recognitionMode === 'speed' ? '高速モード: 音声入力を待機中' : '正確モード: 音声入力を待機中';
+    });
+  });
+
+  loadSample.addEventListener('click', ()=>{
+    const sample = `Teacher: Today's unit question is "How do we make decisions?"\nYuna: We make decisions every day—what to wear, what to eat, what to watch.\nTeacher: Great. What kinds of factors affect our decisions?\nSophy: A big factor for me is my parents' opinions.\nTeacher: Often other people influence our choices. What else?\nMarcus: Sometimes we want to change or feel better about ourselves.`;
+    textInput.value = sample; tokenize(sample); render();
+  });
+
+  // 初期描画
+  tokenize(''); render();
+  reader.style.fontSize = fontSize.value + 'px';
+  reader.style.lineHeight = lineH.value;
+  </script>
+</body>
+</html>
