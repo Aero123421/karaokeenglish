@@ -4,59 +4,208 @@
   <base href="/karaokeenglish/">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>音声認識カラオケ・モノクロ版</title>
+  <title>音声認識カラオケ・Glassmorphic版</title>
   <style>
-    /* ── モノクロ（白黒）テーマ ───────────────────────────── */
+    /* ── Glassmorphic Light & Dark Theme ───────────────────────────── */
     :root{
-      --bg:#ffffff;
-      --ink:#111111;         /* 文字色 */
+      --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --bg-overlay: rgba(255, 255, 255, 0.1);
+      --ink:#1f2937;         /* 文字色 */
       --muted:#6b7280;       /* 補助文字 */
-      --panel:#f5f5f5;       /* パネル背景 */
-      --border:#e5e7eb;      /* 枠線 */
-      --active-bg:#111111;   /* 現在の単語: 黒背景・白文字 */
-      --past-ink:#9ca3af;    /* 既読: 薄いグレー */
-      /* Accent palette (modern teal/cyan) */
-      --accent-600: #0f766e;
-      --accent-500: #0ea5a4; /* primary accent */
-      --accent-300: #67e8f9;
-      --accent-100: #ecfeff;
-      --accent-shadow: rgba(14,165,164,0.18);
+      --panel: rgba(255, 255, 255, 0.25);       /* パネル背景 - glassmorphic */
+      --panel-hover: rgba(255, 255, 255, 0.35);
+      --border: rgba(255, 255, 255, 0.18);      /* 枠線 */
+      --active-bg:#667eea;   /* 現在の単語 */
+      --active-text: #ffffff;
+      --past-ink:#94a3b8;    /* 既読: 薄いグレー */
+      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      --glass-shadow-hover: 0 12px 40px 0 rgba(31, 38, 135, 0.5);
+      --input-bg: rgba(255, 255, 255, 0.5);
+      --button-bg: rgba(255, 255, 255, 0.3);
+      --button-hover: rgba(255, 255, 255, 0.5);
+      --white: #ffffff;
+      --toggle-knob: #ffffff;
+      /* Accent palette (modern purple/blue) */
+      --accent-600: #5b21b6;
+      --accent-500: #667eea; /* primary accent */
+      --accent-300: #a78bfa;
+      --accent-100: #ede9fe;
+      --accent-shadow: rgba(102, 126, 234, 0.3);
+    }
+    
+    [data-theme="dark"] {
+      --bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      --bg-overlay: rgba(0, 0, 0, 0.2);
+      --ink: #e5e7eb;
+      --muted: #9ca3af;
+      --panel: rgba(30, 30, 46, 0.4);
+      --panel-hover: rgba(30, 30, 46, 0.6);
+      --border: rgba(255, 255, 255, 0.1);
+      --active-bg: #8b5cf6;
+      --active-text: #ffffff;
+      --past-ink: #6b7280;
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+      --glass-shadow-hover: 0 12px 40px 0 rgba(0, 0, 0, 0.7);
+      --input-bg: rgba(30, 30, 46, 0.5);
+      --button-bg: rgba(255, 255, 255, 0.1);
+      --button-hover: rgba(255, 255, 255, 0.2);
+      --white: #ffffff;
+      --toggle-knob: #ffffff;
+      --accent-600: #7c3aed;
+      --accent-500: #8b5cf6;
+      --accent-300: #a78bfa;
+      --accent-100: #2e1065;
+      --accent-shadow: rgba(139, 92, 246, 0.4);
     }
     *{box-sizing:border-box}
-    html,body{height:100%}
+    html,body{height:100%; min-height:100vh}
     body{
       margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
-      color:var(--ink); background:var(--bg);
+      color:var(--ink); 
+      background: var(--bg);
+      background-attachment: fixed;
+      position: relative;
+      transition: background 0.3s ease, color 0.3s ease;
     }
-    .wrapper{max-width:1100px; margin:24px auto 40px; padding:0 16px}
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-overlay);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .wrapper{max-width:1100px; margin:24px auto 40px; padding:0 16px; position: relative; z-index: 1}
     header{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px}
-    header h1{font-size:20px; font-weight:700; margin:0; letter-spacing:.02em}
+    header h1{font-size:20px; font-weight:700; margin:0; letter-spacing:.02em; text-shadow: 0 2px 10px rgba(0,0,0,0.1)}
     header .sub{color:var(--muted); font-size:12px}
+    .theme-toggle{
+      cursor: pointer;
+      background: var(--button-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 8px 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--ink);
+      transition: all 0.3s ease;
+      box-shadow: var(--glass-shadow);
+    }
+    .theme-toggle:hover{
+      background: var(--button-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--glass-shadow-hover);
+    }
+    .theme-toggle-icon{
+      font-size: 18px;
+    }
 
     .layout{display:flex; flex-direction:column; gap:18px; align-items:stretch}
 
-    .card{background:var(--panel); border:1px solid var(--border); border-radius:14px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 6px 20px rgba(17,17,17,.04)}
-    .card .head{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:14px 18px; border-bottom:1px solid var(--border)}
-    .card .head h2{font-size:15px; margin:0; color:#374151; letter-spacing:.01em}
+    .card{
+      background: var(--panel);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border:1px solid var(--border);
+      border-radius:20px;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      box-shadow: var(--glass-shadow);
+    }
+    .card .head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      padding:14px 18px;
+      border-bottom:1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .card .head h2{font-size:15px; margin:0; color:var(--ink); letter-spacing:.01em; font-weight: 600}
     .card .body{padding:16px 18px; display:flex; flex-direction:column; gap:14px}
     .card--reader .body{gap:16px}
 
     textarea{
-      width:100%; min-height:260px; max-height:520px; resize:vertical; border-radius:10px; border:1px solid var(--border); background:#fff; color:var(--ink);
-      padding:14px 16px; line-height:1.7; outline:none; font-size:15px; white-space:pre-wrap;
-      box-shadow:0 1px 0 rgba(17,17,17,.04);
+      width:100%;
+      min-height:260px;
+      max-height:520px;
+      resize:vertical;
+      border-radius:15px;
+      border:1px solid var(--border);
+      background: var(--input-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color:var(--ink);
+      padding:14px 16px;
+      line-height:1.7;
+      outline:none;
+      font-size:15px;
+      white-space:pre-wrap;
+      box-shadow: var(--glass-shadow);
+      transition: all 0.3s ease;
+    }
+    textarea:focus {
+      border-color: var(--accent-500);
+      box-shadow: 0 8px 32px 0 var(--accent-shadow);
+      transform: translateY(-2px);
     }
 
     .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
-    .controls button{cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:0 16px; appearance:none; border-radius:10px; border:1px solid var(--border); background:#fff; color:var(--ink); height:36px; box-shadow:0 1px 0 rgba(17,17,17,.05); transition:transform .2s ease, box-shadow .2s ease, background-color .2s ease}
-    .controls button:hover{transform:translateY(-1px); box-shadow:0 8px 16px rgba(17,17,17,.08); background:#fffdfa}
-    .controls button:active{transform:translateY(0); box-shadow:0 2px 6px rgba(17,17,17,.08)}
-    .controls button:disabled{opacity:.55; cursor:not-allowed; transform:none; box-shadow:0 1px 0 rgba(17,17,17,.05)}
+    .controls button{
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:0 16px;
+      appearance:none;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: var(--button-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color:var(--ink);
+      height:36px;
+      box-shadow: var(--glass-shadow);
+      transition:transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+      font-weight: 500;
+    }
+    .controls button:hover{
+      transform:translateY(-2px);
+      box-shadow:0 12px 24px var(--accent-shadow);
+      background: var(--button-hover);
+    }
+    .controls button:active{transform:translateY(0); box-shadow:0 4px 12px var(--accent-shadow)}
+    .controls button:disabled{opacity:.55; cursor:not-allowed; transform:none; box-shadow: var(--glass-shadow)}
     .controls--options{display:flex; flex-wrap:wrap; gap:18px; align-items:stretch}
     .control{flex:1 1 190px; display:flex; flex-direction:column; gap:10px; font-size:12px; color:#4b5563; min-width:160px}
     .control-title{font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:#6b7280}
-    .control-body{display:flex; align-items:center; gap:10px; min-height:44px; padding:8px 12px; border-radius:12px; border:1px solid var(--border); background:#fff; box-shadow:0 1px 0 rgba(17,17,17,.05); transition:box-shadow .25s ease, transform .25s ease}
-    .control-body:focus-within{box-shadow:0 0 0 3px rgba(17,17,17,.08); transform:translateY(-1px)}
+    .control-body{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-height:44px;
+      padding:8px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: var(--input-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: var(--glass-shadow);
+      transition:box-shadow .25s ease, transform .25s ease;
+    }
+    .control-body:focus-within{
+      box-shadow:0 8px 32px 0 var(--accent-shadow);
+      transform:translateY(-2px);
+      border-color: var(--accent-500);
+    }
     .control-select{appearance:none; border:none; background:transparent; color:var(--ink); width:100%; font-size:13px; font-weight:500; outline:none}
     .control-value{font-size:11px; color:var(--muted); letter-spacing:.02em; min-width:48px; text-align:right; margin-left:auto}
   .control-body--range{padding:8px 12px; justify-content:space-between; align-items:center}
@@ -81,43 +230,138 @@
     .control-body--toggle{justify-content:space-between; gap:16px}
     .control-body--toggle .toggle{width:100%; display:inline-flex; align-items:center; gap:12px; position:relative; cursor:pointer}
     .toggle input{position:absolute; opacity:0; width:0; height:0}
-    .toggle-slider{width:38px; height:22px; border-radius:999px; background:#d1d5db; position:relative; transition:background-color .25s ease}
-    .toggle-slider::after{content:''; position:absolute; left:3px; top:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:transform .25s cubic-bezier(.4,.0,.2,1), background-color .25s ease, box-shadow .25s ease}
-  .toggle input:checked + .toggle-slider{background:var(--accent-500)}
-  .toggle input:checked + .toggle-slider::after{transform:translateX(16px); background:#fff; box-shadow:0 2px 10px var(--accent-shadow)}
+    .toggle-slider{
+      width:38px;
+      height:22px;
+      border-radius:999px;
+      background: var(--button-bg);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      position:relative;
+      transition:background-color .25s ease;
+      border: 1px solid var(--border);
+    }
+    .toggle-slider::after{
+      content:'';
+      position:absolute;
+      left:3px;
+      top:3px;
+      width:16px;
+      height:16px;
+      border-radius:50%;
+      background:var(--toggle-knob);
+      transition:transform .25s cubic-bezier(.4,.0,.2,1), background-color .25s ease, box-shadow .25s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+  .toggle input:checked + .toggle-slider{
+    background:var(--accent-500);
+    box-shadow: 0 4px 16px var(--accent-shadow);
+  }
+  .toggle input:checked + .toggle-slider::after{
+    transform:translateX(16px);
+    background:var(--toggle-knob);
+    box-shadow:0 2px 10px var(--accent-shadow);
+  }
     .toggle-label{font-size:12px; color:#374151; font-weight:500; transition:color .2s ease}
   .toggle input:checked + .toggle-slider + .toggle-label{color:var(--accent-500)}
     .control-body--segment{padding:6px; gap:6px; justify-content:flex-start}
     .segment{flex:1; position:relative}
     .segment input{position:absolute; opacity:0; inset:0; cursor:pointer}
-    .segment span{display:block; padding:8px 14px; border-radius:18px; text-align:center; font-size:12px; font-weight:500; color:#475569; background:#f1f5f9; border:1px solid transparent; transition:all .25s ease, color .2s ease}
-    .segment span:hover{background:#e2e8f0}
-  .segment input:focus-visible + span{box-shadow:0 0 0 3px rgba(14,165,164,.18); outline:none}
-  .segment input:checked + span{background:var(--accent-500); color:#fff; box-shadow:0 8px 28px var(--accent-shadow); border-color:rgba(14,165,164,.55)}
+    .segment span{
+      display:block;
+      padding:8px 14px;
+      border-radius:10px;
+      text-align:center;
+      font-size:12px;
+      font-weight:500;
+      color:var(--ink);
+      background: var(--button-bg);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      border:1px solid var(--border);
+      transition:all .25s ease, color .2s ease;
+    }
+    .segment span:hover{
+      background: var(--button-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px var(--accent-shadow);
+    }
+  .segment input:focus-visible + span{box-shadow:0 0 0 3px var(--accent-shadow); outline:none}
+  .segment input:checked + span{
+    background:var(--accent-500);
+    color:var(--white);
+    box-shadow:0 8px 28px var(--accent-shadow);
+    border-color:var(--accent-500);
+  }
     .controls--mic{gap:12px; flex-wrap:wrap}
     .controls--mic button{min-width:140px; justify-content:center}
 
     /* 読み上げ表示（音声認識ハイライトのみ） */
-    .reader{flex:1; min-height:320px; line-height:1.9; font-size:18px; letter-spacing:.01em; white-space:pre-wrap; background:#fff; border:1px solid var(--border); border-radius:10px; padding:18px; overflow:auto; box-shadow:inset 0 1px 0 rgba(17,17,17,.04)}
-    .word{padding:0 .08em; border-radius:6px; transition:background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .25s ease}
-    .word:hover{transform:translateY(-1px); box-shadow:0 2px 8px rgba(17,17,17,.08)}
-    .word.active{background:var(--active-bg); color:#fff; box-shadow:0 0 0 2px #00000014 inset; animation:highlightPulse .8s ease}
-    .word.past{color:var(--past-ink); opacity:.85}
+    .reader{
+      flex:1;
+      min-height:320px;
+      line-height:1.9;
+      font-size:18px;
+      letter-spacing:.01em;
+      white-space:pre-wrap;
+      background: var(--input-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border:1px solid var(--border);
+      border-radius:15px;
+      padding:18px;
+      overflow:auto;
+      box-shadow: var(--glass-shadow);
+    }
+    .word{
+      padding:4px 8px;
+      border-radius:8px;
+      transition:background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .25s ease;
+      cursor: pointer;
+    }
+    .word:hover{
+      transform:translateY(-1px);
+      box-shadow:0 4px 12px var(--accent-shadow);
+      background: var(--button-hover);
+    }
+    .word.active{
+      background:var(--active-bg);
+      color:var(--active-text);
+      box-shadow:0 4px 20px var(--accent-shadow);
+      animation:highlightPulse .8s ease;
+      font-weight: 500;
+    }
+    .word.past{color:var(--past-ink); opacity:.75}
 
     .hint{font-size:12px; color:var(--muted); margin-top:8px}
-    .kbd{border:1px solid var(--border); padding:.1em .4em; border-radius:6px; background:#fff; font-family:ui-monospace, SFMono-Regular, Menlo, monospace}
+    .kbd{
+      border:1px solid var(--border);
+      padding:.1em .4em;
+      border-radius:6px;
+      background: var(--button-bg);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
     footer{margin-top:18px; color:var(--muted); font-size:12px}
     a{color:inherit; text-decoration:underline}
 
     .card{transition:transform .25s ease, box-shadow .25s ease}
-    .card:hover{transform:translateY(-4px); box-shadow:0 18px 38px rgba(17,17,17,.08)}
-    .reader{transition:box-shadow .25s ease}
-    .reader:focus-within, .reader:hover{box-shadow:inset 0 2px 10px rgba(17,17,17,.08)}
+    .card:hover{
+      transform:translateY(-6px);
+      box-shadow:0 20px 60px 0 rgba(31, 38, 135, 0.5);
+    }
+    .reader{transition:box-shadow .25s ease, transform .25s ease}
+    .reader:focus-within, .reader:hover{
+      box-shadow:0 12px 40px 0 var(--accent-shadow);
+      transform: translateY(-2px);
+    }
 
     @keyframes highlightPulse{
-      0%{box-shadow:0 0 0 0 rgba(17,17,17,.2); transform:scale(1)}
-      60%{box-shadow:0 0 0 8px rgba(17,17,17,0); transform:scale(1.02)}
-      100%{box-shadow:0 0 0 0 rgba(17,17,17,0); transform:scale(1)}
+      0%{box-shadow:0 4px 20px var(--accent-shadow); transform:scale(1)}
+      50%{box-shadow:0 8px 40px var(--accent-shadow); transform:scale(1.05)}
+      100%{box-shadow:0 4px 20px var(--accent-shadow); transform:scale(1)}
     }
 
     /* ── Responsive Design for Mobile and Tablet ───────────────────────────── */
@@ -175,8 +419,14 @@
 <body>
   <div class="wrapper">
     <header>
-      <h1>音声認識カラオケ・モノクロ版</h1>
-      <div class="sub">Web Speech API（SpeechRecognition）のみで単語ハイライト。読み上げ機能はありません。</div>
+      <div>
+        <h1>音声認識カラオケ・Glassmorphic版</h1>
+        <div class="sub">Web Speech API（SpeechRecognition）のみで単語ハイライト。読み上げ機能はありません。</div>
+      </div>
+      <button class="theme-toggle" id="themeToggle">
+        <span class="theme-toggle-icon" id="themeIcon">🌙</span>
+        <span id="themeText">ダークモード</span>
+      </button>
     </header>
 
     <div class="layout">
@@ -746,6 +996,38 @@
   loadSample.addEventListener('click', ()=>{
     const sample = `Teacher: Today's unit question is "How do we make decisions?"\nYuna: We make decisions every day—what to wear, what to eat, what to watch.\nTeacher: Great. What kinds of factors affect our decisions?\nSophy: A big factor for me is my parents' opinions.\nTeacher: Often other people influence our choices. What else?\nMarcus: Sometimes we want to change or feel better about ourselves.`;
     textInput.value = sample; tokenize(sample); render();
+  });
+
+  // ====== Theme Toggle ======
+  const themeToggle = document.getElementById('themeToggle');
+  const themeIcon = document.getElementById('themeIcon');
+  const themeText = document.getElementById('themeText');
+  
+  function setTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      themeIcon.textContent = '☀️';
+      themeText.textContent = 'ライトモード';
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      themeIcon.textContent = '🌙';
+      themeText.textContent = 'ダークモード';
+      localStorage.setItem('theme', 'light');
+    }
+  }
+  
+  // Load saved theme or detect system preference
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    setTheme(savedTheme);
+  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    setTheme('dark');
+  }
+  
+  themeToggle.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    setTheme(currentTheme === 'dark' ? 'light' : 'dark');
   });
 
   // 初期描画
