@@ -5,6 +5,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>英語カラオケ - English Karaoke</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     /* ── Neutral Glass Theme ───────────────────────────── */
     :root{
@@ -79,7 +82,7 @@
     *{box-sizing:border-box}
     html,body{height:100%; min-height:100vh}
     body{
-      margin:0; font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic Medium", "BIZ UDGothic", "Segoe UI", sans-serif;
+      margin:0; font-family: "Noto Serif JP", "Georgia", "Times New Roman", serif;
       color:var(--ink);
       background: var(--bg);
       background-attachment: fixed;
@@ -106,10 +109,12 @@
     header .sub{color:var(--muted); font-size:13px; margin-top:4px}
     .theme-toggle{
       cursor: pointer;
-      background: var(--button-bg);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid var(--surface-outline);
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.15) 0%, 
+        rgba(255, 255, 255, 0.05) 100%);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
       border-radius: 50px;
       padding: 8px 16px;
       display: inline-flex;
@@ -117,13 +122,38 @@
       gap: 8px;
       font-size: 14px;
       color: var(--ink);
-      transition: all 0.3s ease;
-      box-shadow: var(--glass-shadow);
+      transition: all 0.3s cubic-bezier(.4,0,.2,1);
+      box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.05);
+    }
+    [data-theme="dark"] .theme-toggle{
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.08) 0%, 
+        rgba(255, 255, 255, 0.02) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.2);
     }
     .theme-toggle:hover{
-      background: var(--button-hover);
-      transform: translateY(-2px);
-      box-shadow: var(--glass-shadow-hover);
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.2) 0%, 
+        rgba(255, 255, 255, 0.08) 100%);
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 
+        0 12px 40px 0 rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.08);
+    }
+    .theme-toggle:active{
+      transform: translateY(0) scale(0.98);
+      box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
+        inset 0 2px 8px 0 rgba(0, 0, 0, 0.08);
     }
     .theme-toggle-icon{
       font-size: 18px;
@@ -148,18 +178,26 @@
       position:absolute;
       inset:0;
       border-radius:inherit;
-      background: linear-gradient(145deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08));
+      background: 
+        radial-gradient(ellipse 120% 80% at 20% 30%, rgba(255, 255, 255, 0.5) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 80% at 80% 70%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
       border:1px solid var(--frost-line);
-      mix-blend-mode:screen;
+      mix-blend-mode:overlay;
       pointer-events:none;
-      opacity:0.85;
+      opacity:0.9;
+      filter: blur(0.5px);
     }
     .card::after{
       content:'';
       position:absolute;
       inset:0;
       border-radius:inherit;
-      box-shadow: inset 0 1px 0 var(--frost-line-strong), inset 0 -24px 48px rgba(16, 18, 22, 0.08);
+      box-shadow: 
+        inset 0 1px 0 var(--frost-line-strong), 
+        inset 0 -24px 48px rgba(16, 18, 22, 0.08),
+        inset 4px 0 12px -6px rgba(255, 255, 255, 0.5),
+        inset -4px 0 12px -6px rgba(255, 255, 255, 0.5);
       pointer-events:none;
       opacity:0.8;
     }
@@ -224,26 +262,163 @@
       padding:0 20px;
       appearance:none;
       border-radius:var(--control-radius);
-      border:1px solid var(--surface-outline);
-      background: var(--button-bg);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      border:1px solid rgba(255, 255, 255, 0.25);
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.15) 0%, 
+        rgba(255, 255, 255, 0.05) 100%);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
       color:var(--ink);
       height:40px;
-      box-shadow: var(--glass-shadow);
-      transition:transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+      box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.05);
+      transition:transform .3s cubic-bezier(.4,0,.2,1), box-shadow .3s ease, background .3s ease, filter .3s ease;
       font-weight: 500;
       font-size:14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .controls button::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      background: radial-gradient(circle at center, rgba(255,255,255,0.3) 0%, transparent 70%);
+      opacity:0;
+      transform:scale(0);
+      transition:transform .5s ease, opacity .5s ease;
+    }
+    .controls button::after{
+      content:'';
+      position:absolute;
+      inset:-2px;
+      background: inherit;
+      filter: blur(20px);
+      opacity:0;
+      z-index:-1;
+      transition:opacity .3s ease;
+    }
+    [data-theme="dark"] .controls button{
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.08) 0%, 
+        rgba(255, 255, 255, 0.02) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.2);
     }
     .controls button:hover{
-      transform:translateY(-2px);
-      box-shadow:0 18px 30px var(--accent-shadow);
-      background: var(--button-hover);
+      transform:translateY(-2px) scale(1.02);
+      box-shadow:
+        0 12px 40px 0 rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.08);
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.2) 0%, 
+        rgba(255, 255, 255, 0.08) 100%);
+      filter: brightness(1.05);
     }
-    .controls button:active{transform:translateY(0); box-shadow:0 6px 16px var(--accent-shadow)}
-    .controls button:disabled{opacity:.55; cursor:not-allowed; transform:none; box-shadow: inset 0 0 0 1px var(--surface-outline)}
-    .controls--options{display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:center}
-    .control{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink)}
+    .controls button:hover::after{
+      opacity:0.6;
+    }
+    .controls button:active{
+      transform:translateY(0) scale(0.96); 
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
+        inset 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+      filter: brightness(0.95);
+    }
+    .controls button:active::before{
+      opacity:1;
+      transform:scale(2);
+      transition:transform .2s ease, opacity .2s ease;
+    }
+    .controls button:disabled{
+      opacity:.55; 
+      cursor:not-allowed; 
+      transform:none; 
+      box-shadow: 
+        inset 0 0 0 1px var(--surface-outline),
+        0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    .controls--options{
+      display:flex; 
+      flex-wrap:wrap; 
+      gap:12px; 
+      align-items:center; 
+      justify-content:center;
+      padding: 20px 24px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 18px;
+      backdrop-filter: blur(60px) saturate(180%);
+      -webkit-backdrop-filter: blur(60px) saturate(180%);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+      position: relative;
+      overflow: visible;
+      isolation: isolate;
+    }
+    .controls--options::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.15) 0%,
+        rgba(255, 255, 255, 0.05) 25%,
+        transparent 50%,
+        transparent 75%,
+        rgba(255, 255, 255, 0.12) 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 1;
+      filter: blur(0.5px);
+    }
+    .controls--options::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: 
+        radial-gradient(ellipse 100% 80% at 0% 50%, rgba(255, 255, 255, 0.18) 0%, transparent 40%),
+        radial-gradient(ellipse 100% 80% at 100% 50%, rgba(255, 255, 255, 0.18) 0%, transparent 40%),
+        radial-gradient(ellipse 80% 100% at 50% 0%, rgba(255, 255, 255, 0.15) 0%, transparent 40%),
+        radial-gradient(ellipse 80% 100% at 50% 100%, rgba(0, 0, 0, 0.08) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 2;
+      mix-blend-mode: overlay;
+      filter: blur(2px) url(#lensDistortion);
+      opacity: 0.6;
+    }
+    [data-theme="dark"] .controls--options {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(60px) saturate(150%);
+      -webkit-backdrop-filter: blur(60px) saturate(150%);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    }
+    [data-theme="dark"] .controls--options::after {
+      background: 
+        radial-gradient(ellipse 100% 80% at 0% 50%, rgba(255, 255, 255, 0.25) 0%, transparent 40%),
+        radial-gradient(ellipse 100% 80% at 100% 50%, rgba(255, 255, 255, 0.25) 0%, transparent 40%),
+        radial-gradient(ellipse 80% 100% at 50% 0%, rgba(255, 255, 255, 0.2) 0%, transparent 40%),
+        radial-gradient(ellipse 80% 100% at 50% 100%, rgba(0, 0, 0, 0.3) 0%, transparent 40%);
+      opacity: 0.75;
+    }
+    .control{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink); position:relative; z-index:3}
     .control-title{font-size:12px; font-weight:500; color:var(--muted); white-space:nowrap}
     .control-body{
       display:flex;
@@ -252,25 +427,23 @@
       min-height:44px;
       padding:8px 12px;
       border-radius:var(--control-radius);
-      border:1px solid var(--surface-outline);
-      background: var(--input-bg);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      box-shadow: var(--glass-shadow);
-      transition:box-shadow .25s ease, transform .25s ease;
+      border:none;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
+      transition:transform .25s ease;
     }
     .control-body:focus-within{
-      box-shadow:0 20px 40px 0 var(--accent-shadow);
       transform:translateY(-2px);
-      border-color: var(--frost-line);
     }
     .control-body--lang{
       padding:8px 12px;
       border-radius:var(--control-radius);
-      border:1px solid var(--surface-outline);
-      background: var(--input-bg);
-      box-shadow: var(--glass-shadow);
-      transition:box-shadow .25s ease, transform .25s ease, border-color .25s ease;
+      border:none;
+      background: transparent;
+      box-shadow: none;
+      transition:transform .25s ease;
       overflow:hidden;
       min-height:0;
     }
@@ -284,12 +457,16 @@
     .lang-toggle{
       position:relative;
       display:flex;
-      gap:6px;
+      gap:4px;
       padding:4px;
       border-radius:var(--pill-radius);
-      background: rgba(255, 255, 255, 0.4);
-      border:1px solid var(--surface-outline);
-      box-shadow: inset 0 1px 0 var(--frost-line-strong);
+      background: rgba(255, 255, 255, 0.04);
+      border:1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.06),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
       width:100%;
       align-items:stretch;
       isolation:isolate;
@@ -301,9 +478,13 @@
       cursor:pointer;
     }
     [data-theme="dark"] .lang-toggle{
-      background: rgba(12, 12, 12, 0.58);
-      border-color: rgba(255, 255, 255, 0.1);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.06);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 1px 1px rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(30px) saturate(150%);
+      -webkit-backdrop-filter: blur(30px) saturate(150%);
     }
     .lang-toggle input{
       position:absolute;
@@ -315,32 +496,23 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      padding:10px 16px;
+      padding:9px 8px;
       border-radius:var(--pill-radius);
-      font-size:12px;
-      letter-spacing:.14em;
+      font-size:10px;
+      letter-spacing:.08em;
       text-transform:uppercase;
       color:var(--muted);
       font-weight:500;
       cursor:pointer;
       transition:color .25s ease, transform .25s cubic-bezier(.25,.8,.25,1);
-      overflow:hidden;
+      overflow:visible;
       flex:1 1 0;
       min-width:0;
       z-index:1;
+      white-space:nowrap;
     }
-    .lang-toggle__option::before{
-      content:'';
-      position:absolute;
-      inset:0;
-      border-radius:inherit;
-      background:var(--button-hover);
-      opacity:0;
-      transition:opacity .25s ease;
-      z-index:-1;
-    }
-    .lang-toggle__option:hover::before{
-      opacity:.35;
+    .lang-toggle__option:active{
+      transform: scale(0.97);
     }
     .lang-toggle__option::after{
       content:'';
@@ -367,21 +539,40 @@
       width:var(--slider-width, 0px);
       height:calc(100% - (var(--lang-toggle-padding, 4px) * 2));
       border-radius:var(--pill-radius);
-      background:var(--active-bg);
-      box-shadow:0 8px 20px rgba(16, 18, 22, 0.12);
-      transition:left .35s cubic-bezier(.4,0,.2,1), width .35s cubic-bezier(.4,0,.2,1), box-shadow .35s cubic-bezier(.4,0,.2,1);
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.5) 0%, 
+        rgba(255, 255, 255, 0.35) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow:
+        0 8px 24px rgba(16, 18, 22, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+      transition:left .35s cubic-bezier(.4,0,.2,1), width .35s cubic-bezier(.4,0,.2,1), box-shadow .35s cubic-bezier(.4,0,.2,1), transform .35s cubic-bezier(.4,0,.2,1);
       pointer-events:none;
       z-index:0;
+      transform-origin: center center;
+      will-change: transform;
     }
     [data-theme="dark"] .lang-toggle__slider{
-      background:rgba(245, 245, 245, 0.12);
-      box-shadow:0 14px 28px rgba(0,0,0,0.58);
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.12) 0%, 
+        rgba(255, 255, 255, 0.06) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      box-shadow:
+        0 8px 28px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
     }
     .lang-toggle--dragging{
       box-shadow: var(--drag-shadow);
     }
     .lang-toggle--dragging .lang-toggle__slider{
-      transition:left .12s cubic-bezier(.22,.61,.36,1), width .12s cubic-bezier(.22,.61,.36,1), box-shadow .2s ease;
+      transition:left .12s cubic-bezier(.22,.61,.36,1), width .12s cubic-bezier(.22,.61,.36,1), box-shadow .2s ease, transform .15s cubic-bezier(.22,.61,.36,1);
+      transform: scaleX(1.15) scaleY(0.92);
     }
     .lang-toggle__option.is-hovered{
       color:var(--active-text);
@@ -393,36 +584,54 @@
     .control-body--toggle .toggle{width:100%; display:inline-flex; align-items:center; gap:12px; position:relative; cursor:pointer}
     .toggle input{position:absolute; opacity:0; width:0; height:0}
     .toggle-slider{
-      width:38px;
-      height:22px;
+      width:50px;
+      height:28px;
       border-radius:var(--pill-radius);
       background: var(--button-bg);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       position:relative;
-      transition:background-color .25s ease;
+      transition:background-color .3s cubic-bezier(.4,0,.2,1), box-shadow .3s ease;
       border: 1px solid var(--surface-outline);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.08);
     }
     .toggle-slider::after{
       content:'';
       position:absolute;
       left:3px;
       top:3px;
-      width:16px;
-      height:16px;
+      width:22px;
+      height:22px;
       border-radius:50%;
       background:var(--toggle-knob);
-      transition:transform .25s cubic-bezier(.4,.0,.2,1), background-color .25s ease, box-shadow .25s ease;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      transition:transform .35s cubic-bezier(.4,0,.2,1), background-color .25s ease, box-shadow .25s ease;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
   .toggle input:checked + .toggle-slider{
-    background:var(--ink);
-    box-shadow: 0 4px 16px var(--accent-shadow);
+    background:var(--active-bg);
+    box-shadow: 0 6px 20px var(--accent-shadow), inset 0 2px 4px rgba(0,0,0,0.1);
   }
   .toggle input:checked + .toggle-slider::after{
-    transform:translateX(16px);
+    transform:translateX(22px);
     background:var(--white);
-    box-shadow:0 2px 10px var(--accent-shadow);
+    box-shadow:0 4px 16px var(--accent-shadow), 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .toggle:active .toggle-slider::after{
+    transform:translateX(0px) scaleX(1.15);
+  }
+  .toggle input:checked + .toggle-slider:active::after{
+    transform:translateX(22px) scaleX(1.15);
+  }
+  .toggle.toggle-dragging .toggle-slider::after{
+    transition:transform .12s cubic-bezier(.22,.61,.36,1), background-color .25s ease, box-shadow .25s ease;
+  }
+  .toggle.toggle-dragging input:not(:checked) + .toggle-slider::after{
+    transform:translateX(0px) scaleX(1.2) scaleY(0.9);
+  }
+  .toggle.toggle-dragging input:checked + .toggle-slider::after{
+    transform:translateX(22px) scaleX(1.2) scaleY(0.9);
   }
   [data-theme="dark"] .toggle input:checked + .toggle-slider{
     background:rgba(245, 245, 245, 0.35);
@@ -432,67 +641,263 @@
   }
     .toggle-label{font-size:12px; color:var(--muted); font-weight:500; transition:color .2s ease}
   .toggle input:checked + .toggle-slider + .toggle-label{color:var(--active-text)}
-    .control-body--segment{
+    /* Mode toggle - same style as language toggle */
+    .mode-toggle{
       position:relative;
-      padding:6px;
-      gap:6px;
-      justify-content:flex-start;
-      isolation:isolate;
+      display:flex;
+      gap:4px;
+      padding:4px;
       border-radius:var(--pill-radius);
-      --segment-padding:6px;
-      --segment-slider-x:0px;
-      --segment-slider-y:0px;
-      --segment-slider-width:0px;
-      --segment-slider-height:0px;
+      background: rgba(255, 255, 255, 0.04);
+      border:1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.06),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      width:100%;
+      align-items:stretch;
+      isolation:isolate;
+      --mode-toggle-padding:4px;
+      --mode-slider-offset:0px;
+      --mode-slider-width:0px;
+      touch-action: pan-x;
+      user-select:none;
+      cursor:pointer;
     }
-    .control-body--segment::before{
+    [data-theme="dark"] .mode-toggle{
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.06);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 1px 1px rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(30px) saturate(150%);
+      -webkit-backdrop-filter: blur(30px) saturate(150%);
+    }
+    .mode-toggle input{
+      position:absolute;
+      opacity:0;
+      pointer-events:none;
+    }
+    .mode-toggle__option{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px 16px;
+      border-radius:var(--pill-radius);
+      font-size:12px;
+      letter-spacing:.05em;
+      color:var(--muted);
+      font-weight:500;
+      cursor:pointer;
+      transition:color .25s ease, transform .25s cubic-bezier(.25,.8,.25,1);
+      overflow:visible;
+      flex:1 1 0;
+      min-width:0;
+      z-index:1;
+      white-space:nowrap;
+    }
+    .mode-toggle__option:active{
+      transform: scale(0.97);
+    }
+    .mode-toggle__option::after{
       content:'';
       position:absolute;
-      top:calc(var(--segment-padding, 6px) + var(--segment-slider-y, 0px));
-      left:calc(var(--segment-padding, 6px) + var(--segment-slider-x, 0px));
-      width:var(--segment-slider-width, 0px);
-      height:var(--segment-slider-height, 0px);
+      inset:-2px;
+      border-radius:inherit;
+      border:2px solid transparent;
+      transition:border-color .25s ease;
+      pointer-events:none;
+    }
+    .mode-toggle input:checked + .mode-toggle__option{
+      color:var(--active-text);
+    }
+    .mode-toggle input:focus-visible + .mode-toggle__option::after{
+      border-color:rgba(16, 18, 22, 0.3);
+    }
+    [data-theme="dark"] .mode-toggle input:focus-visible + .mode-toggle__option::after{
+      border-color:rgba(255, 255, 255, 0.32);
+    }
+    .mode-toggle__slider{
+      position:absolute;
+      top:var(--mode-toggle-padding, 4px);
+      left:calc(var(--mode-toggle-padding, 4px) + var(--mode-slider-offset, 0px));
+      width:var(--mode-slider-width, 0px);
+      height:calc(100% - (var(--mode-toggle-padding, 4px) * 2));
       border-radius:var(--pill-radius);
-      background:var(--active-bg);
-      box-shadow:0 12px 28px var(--accent-shadow);
-      transition:top .35s cubic-bezier(.4,0,.2,1), left .35s cubic-bezier(.4,0,.2,1), width .35s cubic-bezier(.4,0,.2,1), height .35s cubic-bezier(.4,0,.2,1), box-shadow .35s cubic-bezier(.4,0,.2,1);
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.5) 0%, 
+        rgba(255, 255, 255, 0.35) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow:
+        0 8px 24px rgba(16, 18, 22, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+      transition:left .35s cubic-bezier(.4,0,.2,1), width .35s cubic-bezier(.4,0,.2,1), box-shadow .35s cubic-bezier(.4,0,.2,1), transform .35s cubic-bezier(.4,0,.2,1);
       pointer-events:none;
       z-index:0;
+      transform-origin: center center;
+      will-change: transform;
     }
-    [data-theme="dark"] .control-body--segment::before{
-      background:rgba(245, 245, 245, 0.12);
-      box-shadow:0 18px 36px rgba(0,0,0,0.72);
+    [data-theme="dark"] .mode-toggle__slider{
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.12) 0%, 
+        rgba(255, 255, 255, 0.06) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      box-shadow:
+        0 8px 28px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
     }
-    .segment{flex:1; position:relative}
-    .segment input{position:absolute; opacity:0; inset:0; cursor:pointer}
-    .segment span{
-      display:block;
-      padding:8px 14px;
-      border-radius:var(--pill-radius);
-      text-align:center;
-      font-size:12px;
-      font-weight:500;
+    .mode-toggle--dragging{
+      box-shadow: var(--drag-shadow);
+    }
+    .mode-toggle--dragging .mode-toggle__slider{
+      transition:left .12s cubic-bezier(.22,.61,.36,1), width .12s cubic-bezier(.22,.61,.36,1), box-shadow .2s ease, transform .15s cubic-bezier(.22,.61,.36,1);
+      transform: scaleX(1.15) scaleY(0.92);
+    }
+    .mode-toggle__option.is-hovered{
       color:var(--ink);
-      background: var(--button-bg);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-      border:1px solid var(--surface-outline);
-      transition:all .25s ease, color .2s ease;
+    }
+    .mode-toggle--dragging .mode-toggle__option.is-hovered{
+      color:var(--ink);
+    }
+    
+    /* Scroll toggle - same style as language and mode */
+    .scroll-toggle{
       position:relative;
+      display:flex;
+      gap:4px;
+      padding:4px;
+      border-radius:var(--pill-radius);
+      background: rgba(255, 255, 255, 0.04);
+      border:1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.06),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      width:100%;
+      align-items:stretch;
+      isolation:isolate;
+      --scroll-toggle-padding:4px;
+      --scroll-slider-offset:0px;
+      --scroll-slider-width:0px;
+      touch-action: pan-x;
+      user-select:none;
+      cursor:pointer;
+    }
+    [data-theme="dark"] .scroll-toggle{
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.06);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 1px 1px rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(30px) saturate(150%);
+      -webkit-backdrop-filter: blur(30px) saturate(150%);
+    }
+    .scroll-toggle input{
+      position:absolute;
+      opacity:0;
+      pointer-events:none;
+    }
+    .scroll-toggle__option{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px 16px;
+      border-radius:var(--pill-radius);
+      font-size:12px;
+      letter-spacing:.05em;
+      color:var(--muted);
+      font-weight:500;
+      cursor:pointer;
+      transition:color .25s ease, transform .25s cubic-bezier(.25,.8,.25,1);
+      overflow:visible;
+      flex:1 1 0;
+      min-width:0;
       z-index:1;
+      white-space:nowrap;
     }
-    .segment span:hover{
-      background: var(--button-hover);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px var(--accent-shadow);
+    .scroll-toggle__option:active{
+      transform: scale(0.97);
     }
-  .segment input:focus-visible + span{box-shadow:0 0 0 3px var(--accent-shadow); outline:none}
-  .segment input:checked + span{
-    background:var(--active-bg);
-    color:var(--active-text);
-    box-shadow:0 8px 28px var(--accent-shadow);
-    border-color:var(--surface-outline);
-  }
+    .scroll-toggle__option::after{
+      content:'';
+      position:absolute;
+      inset:-2px;
+      border-radius:inherit;
+      border:2px solid transparent;
+      transition:border-color .25s ease;
+      pointer-events:none;
+    }
+    .scroll-toggle input:checked + .scroll-toggle__option{
+      color:var(--active-text);
+    }
+    .scroll-toggle input:focus-visible + .scroll-toggle__option::after{
+      border-color:rgba(16, 18, 22, 0.3);
+    }
+    [data-theme="dark"] .scroll-toggle input:focus-visible + .scroll-toggle__option::after{
+      border-color:rgba(255, 255, 255, 0.32);
+    }
+    .scroll-toggle__slider{
+      position:absolute;
+      top:var(--scroll-toggle-padding, 4px);
+      left:calc(var(--scroll-toggle-padding, 4px) + var(--scroll-slider-offset, 0px));
+      width:var(--scroll-slider-width, 0px);
+      height:calc(100% - (var(--scroll-toggle-padding, 4px) * 2));
+      border-radius:var(--pill-radius);
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.5) 0%, 
+        rgba(255, 255, 255, 0.35) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow:
+        0 8px 24px rgba(16, 18, 22, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+      transition:left .35s cubic-bezier(.4,0,.2,1), width .35s cubic-bezier(.4,0,.2,1), box-shadow .35s cubic-bezier(.4,0,.2,1), transform .35s cubic-bezier(.4,0,.2,1);
+      pointer-events:none;
+      z-index:0;
+      transform-origin: center center;
+      will-change: transform;
+    }
+    [data-theme="dark"] .scroll-toggle__slider{
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.12) 0%, 
+        rgba(255, 255, 255, 0.06) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      box-shadow:
+        0 8px 28px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    }
+    .scroll-toggle--dragging{
+      box-shadow: var(--drag-shadow);
+    }
+    .scroll-toggle--dragging .scroll-toggle__slider{
+      transition:left .12s cubic-bezier(.22,.61,.36,1), width .12s cubic-bezier(.22,.61,.36,1), box-shadow .2s ease, transform .15s cubic-bezier(.22,.61,.36,1);
+      transform: scaleX(1.15) scaleY(0.92);
+    }
+    .scroll-toggle__option.is-hovered{
+      color:var(--ink);
+    }
+    
+    .control-body--segment,
+    .control-body--scroll{
+      padding:0;
+      min-height:auto;
+    }
+
     .controls--mic{gap:12px; flex-wrap:wrap; justify-content:center}
     .controls--mic button{min-width:160px; justify-content:center}
 
@@ -568,15 +973,77 @@
       font-weight:600;
     }
     .word.word--active::before{
-      background:var(--active-bg);
-      box-shadow:0 6px 24px var(--accent-shadow);
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.65) 0%, 
+        rgba(255, 255, 255, 0.45) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      box-shadow:
+        0 8px 32px rgba(16, 18, 22, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
       transform:translateY(-1px);
     }
     .word.word--active.word--matched::before{
-      background:var(--match-bg);
+      background: linear-gradient(135deg, 
+        rgba(76, 175, 80, 0.4) 0%, 
+        rgba(56, 142, 60, 0.35) 100%);
+      border: 1px solid rgba(76, 175, 80, 0.6);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      box-shadow:
+        0 8px 32px rgba(76, 175, 80, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
     }
     .word.word--active.word--missed::before{
-      background:var(--miss-bg);
+      background: linear-gradient(135deg, 
+        rgba(244, 67, 54, 0.4) 0%, 
+        rgba(211, 47, 47, 0.35) 100%);
+      border: 1px solid rgba(244, 67, 54, 0.6);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      box-shadow:
+        0 8px 32px rgba(244, 67, 54, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    }
+    [data-theme="dark"] .word.word--active::before{
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.18) 0%, 
+        rgba(255, 255, 255, 0.12) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    }
+    [data-theme="dark"] .word.word--active.word--matched::before{
+      background: linear-gradient(135deg, 
+        rgba(76, 175, 80, 0.3) 0%, 
+        rgba(56, 142, 60, 0.25) 100%);
+      border: 1px solid rgba(76, 175, 80, 0.45);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      box-shadow:
+        0 8px 32px rgba(76, 175, 80, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    }
+    [data-theme="dark"] .word.word--active.word--missed::before{
+      background: linear-gradient(135deg, 
+        rgba(244, 67, 54, 0.3) 0%, 
+        rgba(211, 47, 47, 0.25) 100%);
+      border: 1px solid rgba(244, 67, 54, 0.45);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      box-shadow:
+        0 8px 32px rgba(244, 67, 54, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
     }
     @supports (-webkit-touch-callout: none){
       .word::before,
@@ -651,25 +1118,204 @@
       
       textarea { min-height: 200px; font-size: 15px; padding: 14px; }
       
-      .controls--options { flex-direction: column; gap: 12px; align-items:stretch; }
-      .control { flex: 1 1 auto; width: 100%; justify-content:space-between; }
-      .control-title { font-size: 13px; }
-      .control-body { min-height: 44px; padding: 8px 12px; }
+      /* Premium mobile layout: unified glass panel with lens distortion at edges */
+      .controls--options { 
+        flex-direction: column; 
+        gap: 20px; 
+        align-items: stretch;
+        padding: 24px 20px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        backdrop-filter: blur(60px) saturate(180%);
+        -webkit-backdrop-filter: blur(60px) saturate(180%);
+        box-shadow: 
+          0 8px 32px rgba(0, 0, 0, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+        position: relative;
+        overflow: visible;
+        isolation: isolate;
+      }
+      
+      /* Lens distortion effect at edges - Apple liquid glass style */
+      .controls--options::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        padding: 1px;
+        background: linear-gradient(135deg,
+          rgba(255, 255, 255, 0.4) 0%,
+          rgba(255, 255, 255, 0.1) 25%,
+          transparent 50%,
+          transparent 75%,
+          rgba(255, 255, 255, 0.3) 100%);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+        pointer-events: none;
+        z-index: 1;
+        filter: blur(0.5px);
+      }
+      
+      /* Edge highlights - simulate light refraction through curved glass */
+      .controls--options::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: 
+          radial-gradient(ellipse 100% 80% at 0% 50%, rgba(255, 255, 255, 0.4) 0%, transparent 40%),
+          radial-gradient(ellipse 100% 80% at 100% 50%, rgba(255, 255, 255, 0.4) 0%, transparent 40%),
+          radial-gradient(ellipse 80% 100% at 50% 0%, rgba(255, 255, 255, 0.35) 0%, transparent 40%),
+          radial-gradient(ellipse 80% 100% at 50% 100%, rgba(0, 0, 0, 0.15) 0%, transparent 40%);
+        pointer-events: none;
+        z-index: 2;
+        mix-blend-mode: overlay;
+        filter: blur(2px) url(#lensDistortion);
+        opacity: 0.85;
+      }
+      
+      .control { 
+        flex: 1 1 auto; 
+        width: 100%; 
+        min-width: 0; 
+        display: flex; 
+        flex-direction: row;
+        align-items: center; 
+        justify-content: flex-start;
+        gap: 14px;
+        padding: 0;
+        position: relative;
+        z-index: 3;
+      }
+      
+      .control-title { 
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        text-align: left;
+        color: var(--ink);
+        letter-spacing: 0.02em;
+        flex-shrink: 0;
+        width: 112px;
+        margin: 0;
+        padding: 0;
+      }
+      
+      .control-body { 
+        min-height: 44px; 
+        padding: 7px 10px;
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      /* Language toggle: full width of control-body */
+      .control--lang {
+        flex: 1 1 auto;
+      }
+      .control-body--lang { 
+        width: 100%;
+        justify-content: stretch;
+      }
+      .lang-toggle {
+        width: 100%;
+      }
+      
+      /* Mode segment buttons: perfectly centered */
+      .control-body--segment { 
+        justify-content: center;
+        width: 100%;
+        padding: 6px 8px;
+        gap: 8px;
+      }
+      .segment { 
+        min-width: 0;
+        flex: 1 1 0;
+        max-width: none;
+      }
+      .segment span {
+        width: 100%;
+      }
+      
+      /* Auto-scroll toggle: centered in control-body */
+      .control-body--toggle { 
+        width: 100%;
+        padding: 8px 12px;
+        justify-content: center;
+      }
+      .control-body--toggle .toggle { 
+        width: auto; 
+        flex-shrink: 0;
+      }
+      .toggle-slider {
+        width: 50px;
+        height: 28px;
+      }
+      .toggle-slider::after {
+        width: 22px;
+        height: 22px;
+      }
 
       .session-status { padding: 14px 16px; }
       .session-status__text { font-size: 13px; }
 
+      /* Remove individual control borders - unified glass panel */
+      .control-body--lang,
       .control-body--segment,
       .control-body--toggle {
-        background: var(--panel);
-        border: 1px solid var(--frost-line);
-        box-shadow: var(--glass-shadow);
-        backdrop-filter: blur(18px);
-        -webkit-backdrop-filter: blur(18px);
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: visible;
+      }
+
+      
+      [data-theme="dark"] .controls--options {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(60px) saturate(150%);
+        -webkit-backdrop-filter: blur(60px) saturate(150%);
+        box-shadow: 
+          0 8px 32px rgba(0, 0, 0, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.15),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+      }
+      
+      [data-theme="dark"] .controls--options::after {
+        background: 
+          radial-gradient(ellipse 100% 80% at 0% 50%, rgba(255, 255, 255, 0.25) 0%, transparent 40%),
+          radial-gradient(ellipse 100% 80% at 100% 50%, rgba(255, 255, 255, 0.25) 0%, transparent 40%),
+          radial-gradient(ellipse 80% 100% at 50% 0%, rgba(255, 255, 255, 0.2) 0%, transparent 40%),
+          radial-gradient(ellipse 80% 100% at 50% 100%, rgba(0, 0, 0, 0.3) 0%, transparent 40%);
+        opacity: 0.75;
+      }
+      
+      [data-theme="dark"] .control-body--lang,
+      [data-theme="dark"] .control-body--segment,
+      [data-theme="dark"] .control-body--toggle {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+      }
+      
+      .control-body--lang:active,
+      .control-body--segment:active,
+      .control-body--toggle:active {
+        transform: scale(0.98);
       }
 
       .control-body--segment::before {
-        box-shadow: 0 18px 36px var(--accent-shadow);
+        box-shadow: 0 12px 28px var(--accent-shadow);
       }
       
       .controls--mic { flex-direction: column; gap: 12px; }
@@ -694,9 +1340,44 @@
       .card .body { padding: 14px; }
       .reader { min-height: 240px; font-size: 15px; padding: 14px; }
       .control-body { font-size: 13px; }
-      .control-body--segment { flex-direction: column; gap: 6px; }
-      .segment { width: 100%; }
-      .segment span { padding: 8px 14px; }
+      
+      /* Extra small screens: adjust for very tight space */
+      .controls--options { gap: 16px; }
+      .control { gap: 10px; }
+      .control-title { 
+        font-size: 11px;
+        width: 88px;
+      }
+      
+      /* Language toggle: smaller text to prevent overflow */
+      .lang-toggle__option {
+        padding: 8px 5px;
+        font-size: 9px;
+        letter-spacing: 0.05em;
+      }
+      
+      /* Mode segments: compact on tiny screens, keep centered */
+      .control-body--segment { 
+        flex-direction: row; 
+        flex-wrap: nowrap;
+        gap: 5px; 
+        justify-content: center;
+        align-items: center;
+        padding: 5px;
+        width: 100%;
+      }
+      .segment { 
+        flex: 1 1 0;
+        min-width: 0;
+        max-width: 75px;
+      }
+      .segment span { 
+        padding: 6px 10px; 
+        display: inline-block; 
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      
       .session-status__text { font-size: 12px; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -708,6 +1389,18 @@
   </style>
 </head>
 <body>
+  <!-- SVG Filter for realistic lens distortion -->
+  <svg style="position: absolute; width: 0; height: 0;" aria-hidden="true">
+    <defs>
+      <filter id="lensDistortion" x="-50%" y="-50%" width="200%" height="200%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.01 0.01" numOctaves="2" result="noise" seed="2" />
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+      <filter id="glassBlur">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" />
+      </filter>
+    </defs>
+  </svg>
   <div class="wrapper">
     <header>
       <div>
@@ -739,7 +1432,7 @@
         <div class="head">
           <h2>音声認識</h2>
           <div class="controls controls--options">
-            <label class="control">
+            <div class="control control--lang">
               <span class="control-title">言語:</span>
               <div class="control-body control-body--lang" role="presentation">
                 <div class="lang-toggle" role="radiogroup" aria-label="Recognition language">
@@ -750,29 +1443,37 @@
                   <label class="lang-toggle__option" for="lang-en-gb">EN-GB</label>
                   <input type="radio" id="lang-ja-jp" name="recLang" value="ja-JP">
                   <label class="lang-toggle__option" for="lang-ja-jp">JA-JP</label>
+                  <input type="radio" id="lang-ru-ru" name="recLang" value="ru-RU">
+                  <label class="lang-toggle__option" for="lang-ru-ru">RU-RU</label>
+                  <input type="radio" id="lang-vi-vn" name="recLang" value="vi-VN">
+                  <label class="lang-toggle__option" for="lang-vi-vn">VI-VN</label>
                 </div>
               </div>
-            </label>
-            <label class="control">
+            </div>
+            <div class="control">
               <span class="control-title">モード:</span>
               <div class="control-body control-body--segment">
-                <label class="segment">
-                  <input type="radio" name="recMode" value="precise" checked>
-                  <span>正確</span>
-                </label>
-                <label class="segment">
-                  <input type="radio" name="recMode" value="speed">
-                  <span>高速</span>
-                </label>
+                <div class="mode-toggle" role="radiogroup" aria-label="Recognition mode">
+                  <span class="mode-toggle__slider" aria-hidden="true"></span>
+                  <input type="radio" id="mode-precise" name="recMode" value="precise" checked>
+                  <label class="mode-toggle__option" for="mode-precise">正確</label>
+                  <input type="radio" id="mode-speed" name="recMode" value="speed">
+                  <label class="mode-toggle__option" for="mode-speed">高速</label>
+                </div>
               </div>
-            </label>
-            <label class="control">
-              <span class="control-title">自動スクロール:</span>
-              <label class="toggle">
-                <input type="checkbox" id="autoScroll" checked>
-                <span class="toggle-slider" aria-hidden="true"></span>
-              </label>
-            </label>
+            </div>
+            <div class="control">
+              <span class="control-title">スクロール:</span>
+              <div class="control-body control-body--scroll">
+                <div class="scroll-toggle" role="radiogroup" aria-label="Scroll mode">
+                  <span class="scroll-toggle__slider" aria-hidden="true"></span>
+                  <input type="radio" id="scroll-auto" name="scrollMode" value="auto" checked>
+                  <label class="scroll-toggle__option" for="scroll-auto">自動</label>
+                  <input type="radio" id="scroll-manual" name="scrollMode" value="manual">
+                  <label class="scroll-toggle__option" for="scroll-manual">手動</label>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="body">
@@ -906,14 +1607,35 @@
       requestAnimationFrame(updateLangSlider);
     };
 
+    let langSwipeStart = 0;
     const handlePointerMove = (ev) => {
       if(!langDragState.active || (langDragState.pointerId !== null && ev.pointerId !== langDragState.pointerId)) return;
       updateDragVisual(ev.clientX, false);
+      
+      // Track swipe for navigation
+      const delta = ev.clientX - langSwipeStart;
+      if(Math.abs(delta) > 50){
+        const currentIndex = recLangRadios.findIndex(r => r.checked);
+        if(delta > 0 && currentIndex > 0){
+          // Swipe right: previous option
+          recLangRadios[currentIndex - 1].checked = true;
+          recLangRadios[currentIndex - 1].dispatchEvent(new Event('change', {bubbles: true}));
+          langSwipeStart = ev.clientX;
+        } else if(delta < 0 && currentIndex < recLangRadios.length - 1){
+          // Swipe left: next option
+          recLangRadios[currentIndex + 1].checked = true;
+          recLangRadios[currentIndex + 1].dispatchEvent(new Event('change', {bubbles: true}));
+          langSwipeStart = ev.clientX;
+        }
+      }
     };
 
     const handlePointerUp = (ev) => {
       if(!langDragState.active || (langDragState.pointerId !== null && ev.pointerId !== langDragState.pointerId)) return;
       updateDragVisual(ev.clientX, true);
+      if(langSliderEl){
+        langSliderEl.style.transform = '';
+      }
       finishDrag();
     };
 
@@ -926,6 +1648,7 @@
       ensureMetrics();
       langDragState.active = true;
       langDragState.pointerId = ev.pointerId;
+      langSwipeStart = ev.clientX;
       langToggleEl.classList.add('lang-toggle--dragging');
       try{ langToggleEl.setPointerCapture(ev.pointerId); }catch(_err){}
       updateDragVisual(ev.clientX, false);
@@ -944,36 +1667,292 @@
   };
   const btnMicStart = document.getElementById('btnMicStart');
   const btnMicStop = document.getElementById('btnMicStop');
-  const autoScroll = document.getElementById('autoScroll');
-  const recModeRadios = document.querySelectorAll('input[name=\"recMode\"]');
-  const segmentContainer = document.querySelector('.control-body--segment');
-  const updateSegmentSlider = () => {
-    if (!segmentContainer) return;
-    const activeSpan = segmentContainer.querySelector('.segment input:checked + span');
-    if (!activeSpan) return;
-    const segmentRect = segmentContainer.getBoundingClientRect();
-    const activeRect = activeSpan.getBoundingClientRect();
-    if (!activeRect.width || !activeRect.height) return;
-    const styles = getComputedStyle(segmentContainer);
+  
+  // Scroll toggle (auto/manual)
+  const scrollModeRadios = Array.from(document.querySelectorAll('input[name="scrollMode"]'));
+  const scrollToggleEl = document.querySelector('.scroll-toggle');
+  const scrollSliderEl = scrollToggleEl ? scrollToggleEl.querySelector('.scroll-toggle__slider') : null;
+  let autoScrollEnabled = true;
+  
+  const updateScrollSlider = () => {
+    if (!scrollToggleEl || !scrollSliderEl) return;
+    const activeInput = scrollToggleEl.querySelector('input[type="radio"]:checked');
+    if (!activeInput) return;
+    const activeLabel = scrollToggleEl.querySelector(`label[for="${activeInput.id}"]`);
+    if (!activeLabel) return;
+    const scrollRect = scrollToggleEl.getBoundingClientRect();
+    const labelRect = activeLabel.getBoundingClientRect();
+    if (!labelRect.width) return;
+    const styles = getComputedStyle(scrollToggleEl);
     const paddingLeft = parseFloat(styles.paddingLeft) || 0;
-    const paddingTop = parseFloat(styles.paddingTop) || 0;
     const borderLeft = parseFloat(styles.borderLeftWidth) || 0;
-    const borderTop = parseFloat(styles.borderTopWidth) || 0;
-    const offsetX = activeRect.left - segmentRect.left - borderLeft - paddingLeft;
-    const offsetY = activeRect.top - segmentRect.top - borderTop - paddingTop;
-    segmentContainer.style.setProperty('--segment-slider-x', `${offsetX}px`);
-    segmentContainer.style.setProperty('--segment-slider-y', `${offsetY}px`);
-    segmentContainer.style.setProperty('--segment-slider-width', `${activeRect.width}px`);
-    segmentContainer.style.setProperty('--segment-slider-height', `${activeRect.height}px`);
+    const offset = labelRect.left - scrollRect.left - borderLeft - paddingLeft;
+    scrollToggleEl.style.setProperty('--scroll-slider-offset', `${offset}px`);
+    scrollToggleEl.style.setProperty('--scroll-slider-width', `${labelRect.width}px`);
   };
-  if (segmentContainer) {
-    const scheduleSegmentSlider = () => requestAnimationFrame(updateSegmentSlider);
-    scheduleSegmentSlider();
-    recModeRadios.forEach(radio => {
-      radio.addEventListener('change', scheduleSegmentSlider);
-      radio.addEventListener('focus', scheduleSegmentSlider);
+  
+  if (scrollToggleEl && scrollSliderEl) {
+    const scheduleScrollSlider = () => requestAnimationFrame(updateScrollSlider);
+    scheduleScrollSlider();
+    scrollModeRadios.forEach(input => {
+      input.addEventListener('change', () => {
+        autoScrollEnabled = input.value === 'auto';
+        scheduleScrollSlider();
+      });
+      input.addEventListener('focus', scheduleScrollSlider);
     });
-    window.addEventListener('resize', scheduleSegmentSlider);
+    window.addEventListener('resize', scheduleScrollSlider);
+    
+    // Draggable scroll toggle
+    const scrollOptions = Array.from(scrollToggleEl.querySelectorAll('.scroll-toggle__option'));
+    const scrollDragState = { active:false, pointerId:null, rect:null, paddingLeft:0, paddingRight:0, borderLeft:0, borderRight:0, hover:null };
+
+    const ensureScrollMetrics = () => {
+      scrollDragState.rect = scrollToggleEl.getBoundingClientRect();
+      const styles = getComputedStyle(scrollToggleEl);
+      scrollDragState.paddingLeft = parseFloat(styles.paddingLeft) || 0;
+      scrollDragState.paddingRight = parseFloat(styles.paddingRight) || 0;
+      scrollDragState.borderLeft = parseFloat(styles.borderLeftWidth) || 0;
+      scrollDragState.borderRight = parseFloat(styles.borderRightWidth) || 0;
+    };
+
+    const commitScrollOption = (label) => {
+      if(!label) return;
+      const id = label.getAttribute('for');
+      if(!id) return;
+      const input = scrollToggleEl.querySelector(`#${id}`);
+      if(input && !input.checked){
+        input.checked = true;
+        input.dispatchEvent(new Event('change', {bubbles: true}));
+      }
+    };
+
+    const updateScrollDragVisual = (clientX, commit = false) => {
+      if(!scrollDragState.rect) ensureScrollMetrics();
+      const { rect, paddingLeft, paddingRight, borderLeft, borderRight } = scrollDragState;
+      if(!rect) return;
+      const innerWidth = rect.width - paddingLeft - paddingRight - borderLeft - borderRight;
+      if(innerWidth <= 0) return;
+      let x = clientX - rect.left - borderLeft - paddingLeft;
+      x = Math.max(0, Math.min(innerWidth, x));
+      let closestLabel = null;
+      let minDist = Infinity;
+      scrollOptions.forEach(label => {
+        const optionRect = label.getBoundingClientRect();
+        const center = optionRect.left - rect.left - borderLeft - paddingLeft + optionRect.width / 2;
+        const dist = Math.abs(center - x);
+        if(dist < minDist){
+          minDist = dist;
+          closestLabel = label;
+        }
+      });
+      if(!closestLabel) return;
+      if(scrollDragState.hover && scrollDragState.hover !== closestLabel){
+        scrollDragState.hover.classList.remove('is-hovered');
+      }
+      closestLabel.classList.add('is-hovered');
+      scrollDragState.hover = closestLabel;
+      const optionRect = closestLabel.getBoundingClientRect();
+      const sliderWidth = optionRect.width;
+      const maxOffset = Math.max(0, innerWidth - sliderWidth);
+      const offset = Math.max(0, Math.min(x - sliderWidth / 2, maxOffset));
+      scrollToggleEl.style.setProperty('--scroll-slider-width', `${sliderWidth}px`);
+      scrollToggleEl.style.setProperty('--scroll-slider-offset', `${offset}px`);
+      if(commit){
+        commitScrollOption(closestLabel);
+        requestAnimationFrame(updateScrollSlider);
+      }
+    };
+
+    const finishScrollDrag = () => {
+      if(scrollDragState.pointerId !== null){
+        try{ scrollToggleEl.releasePointerCapture(scrollDragState.pointerId); }catch(_err){}
+      }
+      scrollDragState.pointerId = null;
+      scrollDragState.active = false;
+      scrollToggleEl.classList.remove('scroll-toggle--dragging');
+      if(scrollDragState.hover){
+        scrollDragState.hover.classList.remove('is-hovered');
+        scrollDragState.hover = null;
+      }
+      scrollDragState.rect = null;
+      requestAnimationFrame(updateScrollSlider);
+    };
+
+    const handleScrollPointerMove = (ev) => {
+      if(!scrollDragState.active || (scrollDragState.pointerId !== null && ev.pointerId !== scrollDragState.pointerId)) return;
+      updateScrollDragVisual(ev.clientX, false);
+    };
+
+    const handleScrollPointerUp = (ev) => {
+      if(!scrollDragState.active || (scrollDragState.pointerId !== null && ev.pointerId !== scrollDragState.pointerId)) return;
+      updateScrollDragVisual(ev.clientX, true);
+      if(scrollSliderEl){
+        scrollSliderEl.style.transform = '';
+      }
+      finishScrollDrag();
+    };
+
+    scrollToggleEl.addEventListener('pointerdown', (ev) => {
+      if(ev.pointerType === 'mouse' && ev.button !== 0) return;
+      const optionLabel = ev.target.closest('label.scroll-toggle__option');
+      if(ev.pointerType === 'mouse' && optionLabel && scrollToggleEl.contains(optionLabel)){
+        return;
+      }
+      ensureScrollMetrics();
+      scrollDragState.active = true;
+      scrollDragState.pointerId = ev.pointerId;
+      scrollToggleEl.classList.add('scroll-toggle--dragging');
+      try{ scrollToggleEl.setPointerCapture(ev.pointerId); }catch(_err){}
+      updateScrollDragVisual(ev.clientX, false);
+      if(ev.pointerType !== 'mouse'){
+        ev.preventDefault();
+      }
+    });
+    scrollToggleEl.addEventListener('pointermove', handleScrollPointerMove);
+    scrollToggleEl.addEventListener('pointerup', handleScrollPointerUp);
+    scrollToggleEl.addEventListener('pointercancel', handleScrollPointerUp);
+    scrollToggleEl.addEventListener('lostpointercapture', finishScrollDrag);
+  }
+  const recModeRadios = Array.from(document.querySelectorAll('input[name=\"recMode\"]'));
+  const modeToggleEl = document.querySelector('.mode-toggle');
+  const modeSliderEl = modeToggleEl ? modeToggleEl.querySelector('.mode-toggle__slider') : null;
+  
+  const updateModeSlider = () => {
+    if (!modeToggleEl || !modeSliderEl) return;
+    const activeInput = modeToggleEl.querySelector('input[type="radio"]:checked');
+    if (!activeInput) return;
+    const activeLabel = modeToggleEl.querySelector(`label[for="${activeInput.id}"]`);
+    if (!activeLabel) return;
+    const modeRect = modeToggleEl.getBoundingClientRect();
+    const labelRect = activeLabel.getBoundingClientRect();
+    if (!labelRect.width) return;
+    const styles = getComputedStyle(modeToggleEl);
+    const paddingLeft = parseFloat(styles.paddingLeft) || 0;
+    const borderLeft = parseFloat(styles.borderLeftWidth) || 0;
+    const offset = labelRect.left - modeRect.left - borderLeft - paddingLeft;
+    modeToggleEl.style.setProperty('--mode-slider-offset', `${offset}px`);
+    modeToggleEl.style.setProperty('--mode-slider-width', `${labelRect.width}px`);
+  };
+  if (modeToggleEl && modeSliderEl) {
+    const scheduleModeSlider = () => requestAnimationFrame(updateModeSlider);
+    scheduleModeSlider();
+    recModeRadios.forEach(input => {
+      input.addEventListener('change', scheduleModeSlider);
+      input.addEventListener('focus', scheduleModeSlider);
+    });
+    window.addEventListener('resize', scheduleModeSlider);
+    
+    // Draggable mode toggle with pointer tracking (same as language)
+    const modeOptions = Array.from(modeToggleEl.querySelectorAll('.mode-toggle__option'));
+    const modeDragState = { active:false, pointerId:null, rect:null, paddingLeft:0, paddingRight:0, borderLeft:0, borderRight:0, hover:null };
+
+    const ensureModeMetrics = () => {
+      modeDragState.rect = modeToggleEl.getBoundingClientRect();
+      const styles = getComputedStyle(modeToggleEl);
+      modeDragState.paddingLeft = parseFloat(styles.paddingLeft) || 0;
+      modeDragState.paddingRight = parseFloat(styles.paddingRight) || 0;
+      modeDragState.borderLeft = parseFloat(styles.borderLeftWidth) || 0;
+      modeDragState.borderRight = parseFloat(styles.borderRightWidth) || 0;
+    };
+
+    const commitModeOption = (label) => {
+      if(!label) return;
+      const id = label.getAttribute('for');
+      if(!id) return;
+      const input = modeToggleEl.querySelector(`#${id}`);
+      if(input && !input.checked){
+        input.checked = true;
+        input.dispatchEvent(new Event('change', {bubbles: true}));
+      }
+    };
+
+    const updateModeDragVisual = (clientX, commit = false) => {
+      if(!modeDragState.rect) ensureModeMetrics();
+      const { rect, paddingLeft, paddingRight, borderLeft, borderRight } = modeDragState;
+      if(!rect) return;
+      const innerWidth = rect.width - paddingLeft - paddingRight - borderLeft - borderRight;
+      if(innerWidth <= 0) return;
+      let x = clientX - rect.left - borderLeft - paddingLeft;
+      x = Math.max(0, Math.min(innerWidth, x));
+      let closestLabel = null;
+      let minDist = Infinity;
+      modeOptions.forEach(label => {
+        const optionRect = label.getBoundingClientRect();
+        const center = optionRect.left - rect.left - borderLeft - paddingLeft + optionRect.width / 2;
+        const dist = Math.abs(center - x);
+        if(dist < minDist){
+          minDist = dist;
+          closestLabel = label;
+        }
+      });
+      if(!closestLabel) return;
+      if(modeDragState.hover && modeDragState.hover !== closestLabel){
+        modeDragState.hover.classList.remove('is-hovered');
+      }
+      closestLabel.classList.add('is-hovered');
+      modeDragState.hover = closestLabel;
+      const optionRect = closestLabel.getBoundingClientRect();
+      const sliderWidth = optionRect.width;
+      const maxOffset = Math.max(0, innerWidth - sliderWidth);
+      const offset = Math.max(0, Math.min(x - sliderWidth / 2, maxOffset));
+      modeToggleEl.style.setProperty('--mode-slider-width', `${sliderWidth}px`);
+      modeToggleEl.style.setProperty('--mode-slider-offset', `${offset}px`);
+      if(commit){
+        commitModeOption(closestLabel);
+        requestAnimationFrame(updateModeSlider);
+      }
+    };
+
+    const finishModeDrag = () => {
+      if(modeDragState.pointerId !== null){
+        try{ modeToggleEl.releasePointerCapture(modeDragState.pointerId); }catch(_err){}
+      }
+      modeDragState.pointerId = null;
+      modeDragState.active = false;
+      modeToggleEl.classList.remove('mode-toggle--dragging');
+      if(modeDragState.hover){
+        modeDragState.hover.classList.remove('is-hovered');
+        modeDragState.hover = null;
+      }
+      modeDragState.rect = null;
+      requestAnimationFrame(updateModeSlider);
+    };
+
+    const handleModePointerMove = (ev) => {
+      if(!modeDragState.active || (modeDragState.pointerId !== null && ev.pointerId !== modeDragState.pointerId)) return;
+      updateModeDragVisual(ev.clientX, false);
+    };
+
+    const handleModePointerUp = (ev) => {
+      if(!modeDragState.active || (modeDragState.pointerId !== null && ev.pointerId !== modeDragState.pointerId)) return;
+      updateModeDragVisual(ev.clientX, true);
+      if(modeSliderEl){
+        modeSliderEl.style.transform = '';
+      }
+      finishModeDrag();
+    };
+
+    modeToggleEl.addEventListener('pointerdown', (ev) => {
+      if(ev.pointerType === 'mouse' && ev.button !== 0) return;
+      const optionLabel = ev.target.closest('label.mode-toggle__option');
+      if(ev.pointerType === 'mouse' && optionLabel && modeToggleEl.contains(optionLabel)){
+        return;
+      }
+      ensureModeMetrics();
+      modeDragState.active = true;
+      modeDragState.pointerId = ev.pointerId;
+      modeToggleEl.classList.add('mode-toggle--dragging');
+      try{ modeToggleEl.setPointerCapture(ev.pointerId); }catch(_err){}
+      updateModeDragVisual(ev.clientX, false);
+      if(ev.pointerType !== 'mouse'){
+        ev.preventDefault();
+      }
+    });
+    modeToggleEl.addEventListener('pointermove', handleModePointerMove);
+    modeToggleEl.addEventListener('pointerup', handleModePointerUp);
+    modeToggleEl.addEventListener('pointercancel', handleModePointerUp);
+    modeToggleEl.addEventListener('lostpointercapture', finishModeDrag);
   }
 
   function updateProgressIndicator(){
@@ -1147,7 +2126,7 @@
     lastMicIndex = clamped;
     if(clamped >= 0){
       spans[clamped].classList.add('word--active', 'active');
-      if(autoScroll.checked){
+      if(autoScrollEnabled){
         spans[clamped].scrollIntoView({block:'center', behavior:'smooth'});
       }
     }
@@ -1481,7 +2460,7 @@
     pendingGap = false;
     unmatchedCount = 0;
     updateProgressIndicator();
-    if(autoScroll.checked){ wordSpans[index].scrollIntoView({block:'center', behavior:'smooth'}); }
+    if(autoScrollEnabled){ wordSpans[index].scrollIntoView({block:'center', behavior:'smooth'}); }
   }
 
   function clearRestartTimer(){
@@ -1830,13 +2809,28 @@
 
   document.addEventListener('keydown', (e)=>{
     if(e.key.toLowerCase() === 's'){ e.preventDefault(); recognizing ? micStop() : micStart(); }
-    if(e.key === 'ArrowRight'){
+    
+    // Word navigation
+    if(e.key === 'ArrowRight' && !e.shiftKey){
       e.preventDefault();
       highlightTo(Math.min(currentWord+1, reader.querySelectorAll('.word').length-1), { manual:true });
     }
-    if(e.key === 'ArrowLeft'){
+    if(e.key === 'ArrowLeft' && !e.shiftKey){
       e.preventDefault();
       highlightTo(Math.max(currentWord-1, 0), { manual:true });
+    }
+    
+    // Language navigation with Shift+Arrow
+    if(e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')){
+      e.preventDefault();
+      const currentIndex = recLangRadios.findIndex(r => r.checked);
+      if(e.key === 'ArrowLeft' && currentIndex > 0){
+        recLangRadios[currentIndex - 1].checked = true;
+        recLangRadios[currentIndex - 1].dispatchEvent(new Event('change', {bubbles: true}));
+      } else if(e.key === 'ArrowRight' && currentIndex < recLangRadios.length - 1){
+        recLangRadios[currentIndex + 1].checked = true;
+        recLangRadios[currentIndex + 1].dispatchEvent(new Event('change', {bubbles: true}));
+      }
     }
   });
 
@@ -1918,4 +2912,3 @@
   </script>
 </body>
 </html>
-
