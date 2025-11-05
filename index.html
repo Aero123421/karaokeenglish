@@ -78,10 +78,13 @@
     html,body{height:100%; min-height:100vh}
     body{
       margin:0; font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic Medium", "BIZ UDGothic", "Segoe UI", sans-serif;
-      color:var(--ink); 
+      color:var(--ink);
       background: var(--bg);
       background-attachment: fixed;
       position: relative;
+      touch-action: pan-y;
+      overflow-x: hidden;
+      overscroll-behavior-x: none;
       transition: background 0.3s ease, color 0.3s ease;
     }
     body::before {
@@ -1108,7 +1111,7 @@
     }
   }
 
-  function processSpeedRecognition(parts, hasFinal){
+  function _processSpeedRecognitionLegacy(parts, hasFinal){
     if(normalizedWords.length === 0) return;
     const mismatchLimit = hasFinal ? 2 : 3;
     const prevHistory = speedState.history;
@@ -1156,6 +1159,229 @@
       speedState.history.push(parts[i]);
       speedState.map.push(nextIndex);
       if(nextIndex >= normalizedWords.length - 1) break;
+    }
+  }
+
+  function alignSpeedWindow(parts, baseIndex, hasFinal){
+    if(parts.length === 0 || !normalizedWords.length) return null;
+    const anchor = baseIndex >= 0 ? baseIndex : (currentWord >= 0 ? currentWord : -1);
+    const dynamicAhead = hasFinal ? 30 : 22;
+    const windowStart = Math.max(0, (anchor >= 0 ? anchor : 0) - 6);
+    const windowEnd = Math.min(
+      normalizedWords.length - 1,
+      Math.max(anchor + 1, currentWord + 1, 0) + dynamicAhead
+    );
+    if(windowEnd < windowStart) return null;
+    const windowWords = normalizedWords.slice(windowStart, windowEnd + 1);
+    if(!windowWords.length) return null;
+
+    const rows = parts.length + 1;
+    const cols = windowWords.length + 1;
+    const NEG = -1e9;
+    const dp = Array.from({length: rows}, () => new Float32Array(cols).fill(NEG));
+    const bt = Array.from({length: rows}, () => new Array(cols));
+    const skipWordPenalty = hasFinal ? 1.2 : 0.9;
+    const skipPartPenalty = hasFinal ? 1.05 : 0.75;
+
+    dp[0][0] = 0;
+    for(let j=1; j<cols; j++){
+      dp[0][j] = dp[0][j-1] - skipWordPenalty;
+      bt[0][j] = { i:0, j:j-1, type:'skipWord' };
+    }
+    for(let i=1; i<rows; i++){
+      dp[i][0] = dp[i-1][0] - skipPartPenalty;
+      bt[i][0] = { i:i-1, j:0, type:'skipPart' };
+    }
+
+    for(let i=1; i<rows; i++){
+      const part = parts[i-1];
+      for(let j=1; j<cols; j++){
+        const word = windowWords[j-1];
+        let rawScore = scoreWordMatch(word, part);
+        if(rawScore <= -50) rawScore = -6;
+        else if(rawScore < 0) rawScore = rawScore / 4;
+        let bestScore = dp[i-1][j-1] + rawScore;
+        let bestStep = { i:i-1, j:j-1, type:'match' };
+        const skipWordScore = dp[i][j-1] - skipWordPenalty;
+        if(skipWordScore > bestScore){
+          bestScore = skipWordScore;
+          bestStep = { i:i, j:j-1, type:'skipWord' };
+        }
+        const skipPartScore = dp[i-1][j] - skipPartPenalty;
+        if(skipPartScore > bestScore){
+          bestScore = skipPartScore;
+          bestStep = { i:i-1, j:j, type:'skipPart' };
+        }
+        dp[i][j] = bestScore;
+        bt[i][j] = bestStep;
+      }
+    }
+
+    let bestCol = 0;
+    let bestScore = -Infinity;
+    const lastRow = rows - 1;
+    for(let j=1; j<cols; j++){
+      const wordIdx = windowStart + j - 1;
+      const distance = anchor >= 0 ? Math.max(0, wordIdx - anchor) : Math.max(0, wordIdx);
+      const penalty = distance > 0 ? Math.log2(distance + 1) * 0.35 : 0;
+      const score = dp[lastRow][j] - penalty;
+      if(score > bestScore){
+        bestScore = score;
+        bestCol = j;
+      }
+    }
+
+    const mapping = new Array(parts.length).fill(-1);
+    const matchedWords = [];
+    let strongMatches = 0;
+    let softMatches = 0;
+    let i = rows - 1;
+    let j = bestCol;
+    while(i > 0 || j > 0){
+      const step = bt[i][j];
+      if(!step) break;
+      if(step.type === 'match'){
+        const partIdx = i - 1;
+        const wordIdx = windowStart + j - 1;
+        const rawScore = scoreWordMatch(windowWords[j-1], parts[i-1]);
+        mapping[partIdx] = wordIdx;
+        if(rawScore >= 1){
+          matchedWords.push(wordIdx);
+          strongMatches++;
+        }else if(rawScore >= 0.5){
+          matchedWords.push(wordIdx);
+          softMatches++;
+        }
+        i = step.i;
+        j = step.j;
+      }else{
+        i = step.i;
+        j = step.j;
+      }
+    }
+
+    const uniqueMatches = Array.from(new Set(matchedWords));
+    const bestIndex = mapping.reduce((acc, val) => (typeof val === 'number' && val > acc) ? val : acc, -1);
+    const effectiveMatches = strongMatches + softMatches * 0.5;
+    const coverage = effectiveMatches / Math.max(1, parts.length);
+    const rawPathScore = dp[rows - 1][bestCol];
+    const scorePerToken = rawPathScore / Math.max(1, parts.length);
+    const unmatchedParts = parts.length - (strongMatches + softMatches);
+    return {
+      mapping,
+      matchedWords: uniqueMatches,
+      bestIndex,
+      coverage,
+      scorePerToken,
+      score: bestScore,
+      unmatchedParts
+    };
+  }
+
+  function processSpeedRecognition(parts, hasFinal){
+    if(normalizedWords.length === 0) return;
+    if(!parts.length){
+      speedState.history = [];
+      speedState.map = [];
+      return;
+    }
+
+    const prevHistory = speedState.history;
+    const prevMap = speedState.map;
+    const maxPrefix = Math.min(prevHistory.length, parts.length);
+    let prefix = 0;
+    while(prefix < maxPrefix && prevHistory[prefix] === parts[prefix]) prefix++;
+
+    if(prefix < prevHistory.length){
+      const rollbackIndex = prefix > 0 ? prevMap[prefix - 1] : -1;
+      rewindHighlight(rollbackIndex);
+      speedState.mismatchRun = 0;
+      speedState.lastReliable = rollbackIndex;
+      pendingGap = false;
+      unmatchedCount = 0;
+    }
+
+    const tailLimit = hasFinal ? 22 : 16;
+    const tailStart = Math.max(0, parts.length - tailLimit);
+    const tailParts = parts.slice(tailStart);
+    const baseIndex = speedState.lastReliable >= 0 ? speedState.lastReliable : currentWord;
+    const alignment = alignSpeedWindow(tailParts, baseIndex, hasFinal);
+    const reliabilityThreshold = hasFinal ? 0.5 : 0.38;
+
+    if(!alignment || alignment.bestIndex === -1 || alignment.coverage < reliabilityThreshold || (alignment.scorePerToken < 0.65 && !hasFinal)){
+      _processSpeedRecognitionLegacy(parts, hasFinal);
+      return;
+    }
+
+    const newMap = new Array(parts.length).fill(-1);
+    for(let i=0; i<prefix; i++){
+      newMap[i] = typeof prevMap[i] === 'number' ? prevMap[i] : -1;
+    }
+    const bridgeEnd = Math.min(tailStart, prevMap.length);
+    for(let i=prefix; i<bridgeEnd; i++){
+      if(typeof prevMap[i] === 'number'){
+        newMap[i] = prevMap[i];
+      }
+    }
+    for(let i=tailStart; i<parts.length; i++){
+      const localIdx = i - tailStart;
+      if(localIdx >= 0 && localIdx < alignment.mapping.length){
+        const mapped = alignment.mapping[localIdx];
+        newMap[i] = typeof mapped === 'number' ? mapped : -1;
+      }
+    }
+
+    speedState.history = parts.slice();
+    speedState.map = newMap;
+
+    const matchedSet = new Set(alignment.matchedWords);
+    const bestIndex = alignment.bestIndex;
+    const prevIndex = currentWord;
+
+    if(bestIndex < prevIndex){
+      highlightTo(bestIndex, { outcome:'rollback' });
+    }
+
+    if(bestIndex >= 0){
+      const spans = getWordSpans();
+      if(bestIndex > prevIndex){
+        highlightTo(bestIndex, { outcome:'match', markSkipped:true });
+        const startIdx = Math.max(prevIndex + 1, 0);
+        for(let idx = startIdx; idx <= bestIndex; idx++){
+          if(idx >= 0 && idx < spans.length){
+            updateWordState(idx, matchedSet.has(idx) ? 'matched' : 'missed', spans);
+          }
+        }
+      }else if(bestIndex === prevIndex){
+        if(bestIndex >= 0 && bestIndex < spans.length){
+          updateWordState(bestIndex, matchedSet.has(bestIndex) ? 'matched' : 'missed', spans);
+        }
+      }else{ // rollback handled above
+        if(bestIndex >= 0 && bestIndex < spans.length){
+          updateWordState(bestIndex, matchedSet.has(bestIndex) ? 'matched' : 'missed', spans);
+        }
+      }
+
+      speedState.lastReliable = bestIndex;
+      speedState.mismatchRun = Math.max(0, alignment.unmatchedParts);
+      pendingGap = alignment.unmatchedParts >= (hasFinal ? 2 : 3) && alignment.coverage < 0.55;
+      unmatchedCount = 0;
+    }else{
+      speedState.mismatchRun++;
+    }
+
+    if(hasFinal && alignment.unmatchedParts <= 1){
+      speedState.mismatchRun = 0;
+      pendingGap = false;
+    }
+
+    const mismatchLimit = hasFinal ? 3 : 4;
+    if(speedState.mismatchRun >= mismatchLimit){
+      const rollbackIndex = speedState.lastReliable;
+      rewindHighlight(rollbackIndex);
+      speedState.mismatchRun = 0;
+      pendingGap = false;
+      unmatchedCount = 0;
     }
   }
 
