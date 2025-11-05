@@ -513,54 +513,164 @@
       box-shadow: var(--glass-shadow);
     }
     .word{
+      position:relative;
+      display:inline-flex;
+      align-items:center;
       padding:4px 8px;
       border-radius:8px;
-      transition:background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .25s ease;
-      cursor: pointer;
-      position:relative;
+      cursor:pointer;
       color:var(--ink);
+      -webkit-text-fill-color:currentColor;
+      isolation:isolate;
+      transition:color .2s ease;
+      will-change:color;
     }
-    .word:hover{
-      transform:translateY(-1px);
-      box-shadow:0 4px 12px var(--accent-shadow);
+    .word::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      background:transparent;
+      box-shadow:none;
+      transition:background-color .2s ease, box-shadow .2s ease, transform .2s ease;
+      z-index:-1;
+    }
+    .word:hover::before{
       background: var(--button-hover);
+      box-shadow:0 4px 12px var(--accent-shadow);
+      transform:translateY(-1px);
     }
     .word.word--pending{
       color:var(--pending-text);
-      background:transparent;
     }
     .word.word--matched{
-      background:var(--match-bg);
       color:var(--match-text);
-      box-shadow:0 4px 14px rgba(16, 18, 22, 0.18);
-      font-weight:500;
+      font-weight:600;
     }
-    .word.word--matched:hover{
+    .word.word--matched::before{
       background:var(--match-bg);
+      box-shadow:0 4px 14px rgba(16, 18, 22, 0.18);
     }
     .word.word--missed{
-      background:var(--miss-bg);
       color:var(--miss-text);
-      box-shadow:0 4px 14px rgba(16, 18, 22, 0.14);
+      font-weight:600;
       text-decoration: underline wavy currentColor;
       text-decoration-thickness: 2px;
       text-underline-offset: 6px;
-      font-weight:500;
     }
-    .word.word--missed:hover{
+    .word.word--missed::before{
       background:var(--miss-bg);
+      box-shadow:0 4px 14px rgba(16, 18, 22, 0.14);
     }
     .word.word--active{
+      color:var(--active-text);
+      font-weight:600;
+    }
+    .word.word--active::before{
+      background:var(--active-bg);
       box-shadow:0 6px 24px var(--accent-shadow);
       transform:translateY(-1px);
-      animation:highlightPulse .8s ease;
     }
-    .word.word--active:not(.word--missed):not(.word--matched){
-      background:var(--active-bg);
-      color:var(--active-text);
-      font-weight:500;
+    .word.word--active.word--matched::before{
+      background:var(--match-bg);
+    }
+    .word.word--active.word--missed::before{
+      background:var(--miss-bg);
+    }
+    @supports (-webkit-touch-callout: none){
+      .word::before,
+      .word.word--active::before{
+        transform:none !important;
+      }
+    }
+    @media (prefers-reduced-motion: reduce){
+      .word::before{
+        transition:background-color .2s ease, box-shadow .2s ease;
+      }
     }
 
+    .session-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:12px;
+    }
+    .session-meta__pill{
+      padding:6px 12px;
+      border-radius:var(--pill-radius);
+      border:1px solid var(--surface-outline);
+      background: var(--button-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: var(--glass-shadow);
+      font-size:12px;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:var(--muted);
+      transition:background-color .25s ease, color .25s ease, box-shadow .25s ease, transform .25s ease;
+    }
+    .session-meta__pill[data-state="speed"]{
+      color:var(--active-text);
+      background:var(--active-bg);
+      box-shadow:0 12px 26px var(--accent-shadow);
+    }
+    .session-meta__pill[data-state="on"]{
+      color:var(--match-text);
+      background:var(--match-bg);
+    }
+    .session-status{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .session-status__item{
+      padding:12px 14px;
+      border-radius:var(--control-radius);
+      border:1px solid var(--surface-outline);
+      background: var(--input-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: var(--glass-shadow);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-height:74px;
+    }
+    .session-status__item--progress{gap:10px;}
+    .session-status__label{
+      font-size:11px;
+      letter-spacing:.12em;
+      color:var(--muted);
+      text-transform:uppercase;
+    }
+    .session-status__value{
+      font-size:18px;
+      font-weight:600;
+      color:var(--ink);
+    }
+    .session-progress{
+      position:relative;
+      width:100%;
+      height:8px;
+      border-radius:var(--pill-radius);
+      background:rgba(16, 18, 22, 0.08);
+      overflow:hidden;
+    }
+    [data-theme="dark"] .session-progress{
+      background:rgba(245, 245, 245, 0.18);
+    }
+    .session-progress__bar{
+      position:absolute;
+      inset:0;
+      width:0%;
+      background:linear-gradient(90deg, rgba(56, 176, 96, 0.82), rgba(56, 176, 96, 0.32));
+      transition:width .3s cubic-bezier(.4,0,.2,1);
+      border-radius:inherit;
+    }
+    [data-theme="dark"] .session-progress__bar{
+      background:linear-gradient(90deg, rgba(56, 176, 96, 0.9), rgba(56, 176, 96, 0.45));
+    }
     .hint{font-size:12px; color:var(--muted); margin-top:8px}
     .kbd{
       border:1px solid var(--surface-outline);
@@ -586,12 +696,6 @@
       transform: translateY(-2px);
     }
 
-    @keyframes highlightPulse{
-      0%{box-shadow:0 4px 20px var(--accent-shadow); transform:scale(1)}
-      50%{box-shadow:0 8px 40px var(--accent-shadow); transform:scale(1.05)}
-      100%{box-shadow:0 4px 20px var(--accent-shadow); transform:scale(1)}
-    }
-
     /* ── Responsive Design for Mobile and Tablet ───────────────────────────── */
     @media (max-width: 768px) {
       .wrapper { padding: 0 12px; margin: 16px auto 24px; }
@@ -613,6 +717,12 @@
       .control { flex: 1 1 auto; min-width: 100%; }
       .control-title { font-size: 10px; }
       .control-body { min-height: 40px; padding: 6px 10px; }
+
+      .session-meta { gap: 6px; }
+      .session-meta__pill { flex: 1 1 120px; text-align: center; }
+      .session-status { grid-template-columns: 1fr; }
+      .session-status__item { min-height: auto; }
+      .session-status__value { font-size: 16px; }
 
       .control-body--segment,
       .control-body--toggle {
@@ -652,6 +762,8 @@
       .control-body { font-size: 12px; }
       .control-body--segment { flex-direction: column; gap: 4px; }
       .segment { width: 100%; }
+      .session-meta__pill { flex: 1 1 100%; }
+      .session-status__value { font-size: 15px; }
     .segment span { padding: 6px 12px; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -733,6 +845,28 @@
           </div>
         </div>
         <div class="body">
+          <div class="session-meta">
+            <span class="session-meta__pill" id="modePill">モード: 正確</span>
+            <span class="session-meta__pill" id="langPill">言語: EN-US</span>
+            <span class="session-meta__pill" id="autoScrollPill">自動スクロール: ON</span>
+          </div>
+          <div class="session-status">
+            <div class="session-status__item session-status__item--progress">
+              <div class="session-status__label">進行度</div>
+              <div class="session-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div class="session-progress__bar" id="progressBar" aria-hidden="true"></div>
+              </div>
+              <div class="session-status__value" id="progressValue" aria-live="polite" aria-atomic="true">0%</div>
+            </div>
+            <div class="session-status__item">
+              <div class="session-status__label">レスポンス</div>
+              <div class="session-status__value" id="latencyValue" aria-live="polite" aria-atomic="true">-- ms</div>
+            </div>
+            <div class="session-status__item">
+              <div class="session-status__label">安定度</div>
+              <div class="session-status__value" id="stabilityValue" aria-live="polite" aria-atomic="true">--</div>
+            </div>
+          </div>
           <div class="controls controls--mic">
             <button id="btnMicStart">🎤 開始 (<span class="kbd">S</span>)</button>
             <button id="btnMicStop" disabled>■ 停止</button>
@@ -758,6 +892,13 @@
   const recLangRadios = Array.from(document.querySelectorAll('input[name="recLang"]'));
   const langToggleEl = document.querySelector('.lang-toggle');
   const langSliderEl = langToggleEl ? langToggleEl.querySelector('.lang-toggle__slider') : null;
+  const progressBar = document.getElementById('progressBar');
+  const progressValue = document.getElementById('progressValue');
+  const latencyValue = document.getElementById('latencyValue');
+  const stabilityValue = document.getElementById('stabilityValue');
+  const modePill = document.getElementById('modePill');
+  const langPill = document.getElementById('langPill');
+  const autoScrollPill = document.getElementById('autoScrollPill');
   const updateLangSlider = () => {
     if (!langToggleEl || !langSliderEl) return;
     const activeInput = langToggleEl.querySelector('input[type="radio"]:checked');
@@ -778,7 +919,10 @@
     const scheduleLangSlider = () => requestAnimationFrame(updateLangSlider);
     scheduleLangSlider();
     recLangRadios.forEach(input => {
-      input.addEventListener('change', scheduleLangSlider);
+      input.addEventListener('change', () => {
+        scheduleLangSlider();
+        updateSessionMeta();
+      });
       input.addEventListener('focus', scheduleLangSlider);
     });
     window.addEventListener('resize', scheduleLangSlider);
@@ -931,6 +1075,66 @@
     window.addEventListener('resize', scheduleSegmentSlider);
   }
 
+  function updateProgressIndicator(){
+    if(!progressBar || !progressValue){
+      return;
+    }
+    const total = normalizedWords.length;
+    if(!total){
+      progressBar.style.width = '0%';
+      const progressContainer = progressBar.parentElement;
+      if(progressContainer && progressContainer.hasAttribute('aria-valuenow')){
+        progressContainer.setAttribute('aria-valuenow', '0');
+      }
+      progressValue.textContent = '0%';
+      return;
+    }
+    const ratio = Math.max(0, currentWord + 1) / total;
+    const percent = Math.min(100, Math.max(0, Math.round(ratio * 100)));
+    progressBar.style.width = `${percent}%`;
+    const progressContainer = progressBar.parentElement;
+    if(progressContainer && progressContainer.hasAttribute('aria-valuenow')){
+      progressContainer.setAttribute('aria-valuenow', String(percent));
+    }
+    progressValue.textContent = `${percent}%`;
+  }
+
+  function updateRealtimeTelemetry(){
+    if(latencyValue){
+      if(recognitionMode === 'speed' && speedState.lastEmitTs && speedState.lastInputTs){
+        const latency = Math.max(0, Math.round(speedState.lastEmitTs - speedState.lastInputTs));
+        latencyValue.textContent = `${latency} ms`;
+      }else if(recognitionMode === 'speed'){
+        latencyValue.textContent = '-- ms';
+      }else{
+        latencyValue.textContent = '正確モード';
+      }
+    }
+    if(stabilityValue){
+      if(recognitionMode === 'speed'){
+        const stability = Math.max(0, Math.min(1, speedState.stability));
+        const percent = Math.round(stability * 100);
+        stabilityValue.textContent = percent ? `${percent}%` : '--';
+      }else{
+        stabilityValue.textContent = '---';
+      }
+    }
+  }
+
+  function updateSessionMeta(){
+    if(modePill){
+      modePill.textContent = `モード: ${recognitionMode === 'speed' ? '高速' : '正確'}`;
+      modePill.dataset.state = recognitionMode === 'speed' ? 'speed' : 'precise';
+    }
+    if(langPill){
+      langPill.textContent = `言語: ${getSelectedLang()}`;
+    }
+    if(autoScrollPill){
+      autoScrollPill.textContent = `自動スクロール: ${autoScroll.checked ? 'ON' : 'OFF'}`;
+      autoScrollPill.dataset.state = autoScroll.checked ? 'on' : 'off';
+    }
+  }
+
 
   // ====== 音声認識（読み上げなし） ======
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -957,7 +1161,7 @@
   let permissionPrimed = false;
   let recognitionMode = 'precise';
   let lastSpeedNorm = '';
-  let speedState = { history: [], map: [], mismatchRun: 0, lastReliable: -1 };
+  let speedState = { history: [], map: [], lastReliable: -1, anchor: -1, missCount: 0, stability: 0, lastInputTs: 0, lastEmitTs: 0 };
 
   // ====== ユーティリティ ======
   function normalizeForMatch(str){
@@ -1024,6 +1228,7 @@
     lastMicIndex = -1;
     pendingGap = false;
     unmatchedCount = 0;
+    updateProgressIndicator();
   }
 
   function getWordSpans(){
@@ -1061,10 +1266,12 @@
     wordStates = new Array(normalizedWords.length).fill('pending');
     const spans = getWordSpans();
     spans.forEach(span=>applySpanState(span, 'pending'));
+    updateProgressIndicator();
   }
 
   function resetSpeedState(){
-    speedState = { history: [], map: [], mismatchRun: 0, lastReliable: -1 };
+    speedState = { history: [], map: [], lastReliable: -1, anchor: -1, missCount: 0, stability: 0, lastInputTs: 0, lastEmitTs: 0 };
+    updateRealtimeTelemetry();
   }
 
   function rewindHighlight(targetIndex){
@@ -1091,57 +1298,7 @@
         spans[clamped].scrollIntoView({block:'center', behavior:'smooth'});
       }
     }
-  }
-
-  function _processSpeedRecognitionLegacy(parts, hasFinal){
-    if(normalizedWords.length === 0) return;
-    const mismatchLimit = hasFinal ? 2 : 3;
-    const prevHistory = speedState.history;
-    const prevMap = speedState.map;
-    const maxPrefix = Math.min(prevHistory.length, parts.length);
-    let prefix = 0;
-    while(prefix < maxPrefix && prevHistory[prefix] === parts[prefix]) prefix++;
-    if(prefix < prevHistory.length){
-      const rollbackIndex = prefix > 0 ? prevMap[prefix - 1] : -1;
-      rewindHighlight(rollbackIndex);
-      speedState.mismatchRun = 0;
-      speedState.lastReliable = rollbackIndex;
-      pendingGap = false;
-      unmatchedCount = 0;
-    }
-    speedState.history = prevHistory.slice(0, prefix);
-    speedState.map = prevMap.slice(0, prefix);
-
-    for(let i=prefix; i<parts.length; i++){
-      const nextIndex = currentWord < 0 ? 0 : Math.min(currentWord + 1, normalizedWords.length - 1);
-      if(nextIndex >= normalizedWords.length) break;
-      const expected = normalizedWords[nextIndex];
-      const score = scoreWordMatch(expected, parts[i]);
-      if(score >= 1){
-        highlightTo(nextIndex, { outcome: 'match', markSkipped:false });
-        speedState.mismatchRun = 0;
-        speedState.lastReliable = nextIndex;
-      }else{
-        highlightTo(nextIndex, { outcome: 'skip', markSkipped:false });
-        speedState.mismatchRun++;
-        if(speedState.mismatchRun >= mismatchLimit){
-          const rollbackIndex = speedState.lastReliable;
-          rewindHighlight(rollbackIndex);
-          const cutoff = speedState.map.findIndex(idx => idx > rollbackIndex);
-          const keep = cutoff === -1 ? speedState.map.length : cutoff;
-          speedState.history = speedState.history.slice(0, keep);
-          speedState.map = speedState.map.slice(0, keep);
-          speedState.lastReliable = rollbackIndex;
-          speedState.mismatchRun = 0;
-          pendingGap = false;
-          unmatchedCount = 0;
-          break;
-        }
-      }
-      speedState.history.push(parts[i]);
-      speedState.map.push(nextIndex);
-      if(nextIndex >= normalizedWords.length - 1) break;
-    }
+    updateProgressIndicator();
   }
 
   function alignSpeedWindow(parts, baseIndex, hasFinal){
@@ -1260,13 +1417,72 @@
     };
   }
 
+  function findRealtimeCandidate(contextParts, anchor, options = {}){
+    if(!contextParts.length || !normalizedWords.length) return null;
+    const hasFinal = !!options.hasFinal;
+    const windowAhead = typeof options.windowAhead === 'number' ? options.windowAhead : 14;
+    const backtrack = typeof options.backtrack === 'number' ? options.backtrack : 2;
+    let startIndex = anchor < 0 ? 0 : Math.max(0, anchor - backtrack);
+    let endIndex = normalizedWords.length - 1;
+    if(anchor >= 0){
+      endIndex = Math.min(normalizedWords.length - 1, anchor + windowAhead);
+    }else{
+      endIndex = Math.min(normalizedWords.length - 1, windowAhead);
+    }
+    if(endIndex < startIndex) return null;
+
+    let bestIndex = -1;
+    let bestScore = -Infinity;
+    let bestQuality = 0;
+
+    for(let idx = startIndex; idx <= endIndex; idx++){
+      if(idx < contextParts.length - 1) continue;
+      const wordStart = idx - (contextParts.length - 1);
+      if(wordStart < 0) continue;
+      let score = 0;
+      let valid = true;
+      for(let j=0; j<contextParts.length; j++){
+        const tokenScore = scoreWordMatch(normalizedWords[wordStart + j], contextParts[j]);
+        if(tokenScore < 0){
+          valid = false;
+          break;
+        }
+        score += tokenScore;
+      }
+      if(!valid) continue;
+      const avgScore = score / contextParts.length;
+      const distance = anchor < 0 ? idx : Math.max(0, idx - anchor);
+      const penalty = distance > 0 ? (distance * (hasFinal ? 0.16 : 0.32) + Math.log2(distance + 1) * (hasFinal ? 0.22 : 0.4)) : 0;
+      const bonus = hasFinal ? contextParts.length * 0.12 : 0;
+      const finalScore = score - penalty + bonus;
+      if(finalScore > bestScore){
+        bestScore = finalScore;
+        bestIndex = idx;
+        bestQuality = avgScore;
+      }
+    }
+
+    if(bestIndex === -1) return null;
+    const qualityThreshold = hasFinal ? 0.8 : 1.05;
+    if(bestQuality < qualityThreshold) return null;
+    if(!hasFinal && anchor >= 0 && bestIndex <= anchor) return null;
+    return { index: bestIndex, score: bestScore, quality: bestQuality };
+  }
+
   function processSpeedRecognition(parts, hasFinal){
-    if(normalizedWords.length === 0) return;
+    if(!normalizedWords.length) return;
     if(!parts.length){
       speedState.history = [];
       speedState.map = [];
+      speedState.anchor = Math.max(currentWord, speedState.lastReliable);
+      speedState.missCount = 0;
+      speedState.stability = Math.max(0, speedState.stability * 0.5);
+      updateRealtimeTelemetry();
       return;
     }
+
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    speedState.lastInputTs = now;
 
     const prevHistory = speedState.history;
     const prevMap = speedState.map;
@@ -1276,95 +1492,99 @@
 
     if(prefix < prevHistory.length){
       const rollbackIndex = prefix > 0 ? prevMap[prefix - 1] : -1;
-      rewindHighlight(rollbackIndex);
-      speedState.mismatchRun = 0;
+      highlightTo(rollbackIndex, { outcome:'rollback' });
+      speedState.anchor = rollbackIndex;
       speedState.lastReliable = rollbackIndex;
-      pendingGap = false;
-      unmatchedCount = 0;
+      speedState.missCount = 0;
+      speedState.map = prevMap.slice(0, prefix);
+      speedState.history = prevHistory.slice(0, prefix);
+    }else{
+      speedState.map = prevMap.slice(0, prefix);
+      speedState.history = prevHistory.slice(0, prefix);
     }
 
-    const tailLimit = hasFinal ? 22 : 16;
-    const tailStart = Math.max(0, parts.length - tailLimit);
-    const tailParts = parts.slice(tailStart);
-    const baseIndex = speedState.lastReliable >= 0 ? speedState.lastReliable : currentWord;
-    const alignment = alignSpeedWindow(tailParts, baseIndex, hasFinal);
-    const reliabilityThreshold = hasFinal ? 0.5 : 0.38;
-
-    if(!alignment || alignment.bestIndex === -1 || alignment.coverage < reliabilityThreshold || (alignment.scorePerToken < 0.65 && !hasFinal)){
-      _processSpeedRecognitionLegacy(parts, hasFinal);
-      return;
+    let anchor = speedState.anchor;
+    if(typeof anchor !== 'number' || anchor < -1){
+      anchor = -1;
     }
-
-    const newMap = new Array(parts.length).fill(-1);
-    for(let i=0; i<prefix; i++){
-      newMap[i] = typeof prevMap[i] === 'number' ? prevMap[i] : -1;
-    }
-    const bridgeEnd = Math.min(tailStart, prevMap.length);
-    for(let i=prefix; i<bridgeEnd; i++){
-      if(typeof prevMap[i] === 'number'){
-        newMap[i] = prevMap[i];
+    if(speedState.map.length){
+      const lastAssigned = speedState.map[speedState.map.length - 1];
+      if(typeof lastAssigned === 'number'){
+        anchor = lastAssigned;
       }
     }
-    for(let i=tailStart; i<parts.length; i++){
-      const localIdx = i - tailStart;
-      if(localIdx >= 0 && localIdx < alignment.mapping.length){
-        const mapped = alignment.mapping[localIdx];
-        newMap[i] = typeof mapped === 'number' ? mapped : -1;
+    if(anchor < currentWord) anchor = currentWord;
+    if(speedState.lastReliable > anchor) anchor = speedState.lastReliable;
+
+    let fallbackNeeded = false;
+    const windowAhead = hasFinal ? 26 : 14;
+
+    for(let idx = prefix; idx < parts.length; idx++){
+      const tailStart = Math.max(0, idx - 3);
+      const tail = parts.slice(tailStart, idx + 1);
+      const candidate = findRealtimeCandidate(tail, anchor, { hasFinal, windowAhead });
+      if(candidate){
+        const strongThreshold = hasFinal ? 1.05 : 1.35;
+        const softThreshold = hasFinal ? 0.85 : 1.1;
+        let outcome = 'match';
+        let markSkipped = candidate.quality >= strongThreshold;
+        if(candidate.quality < softThreshold){
+          outcome = 'skip';
+          markSkipped = false;
+        }
+        highlightTo(candidate.index, { outcome, markSkipped });
+        speedState.map[idx] = candidate.index;
+        anchor = candidate.index;
+        speedState.anchor = anchor;
+        speedState.lastReliable = Math.max(speedState.lastReliable, candidate.index);
+        speedState.missCount = 0;
+        const commitTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        speedState.lastEmitTs = commitTime;
+        const stabilityBoost = outcome === 'match' ? (markSkipped ? 0.5 : 0.35) : 0.25;
+        speedState.stability = Math.min(1, speedState.stability * 0.55 + stabilityBoost);
+        updateRealtimeTelemetry();
+      }else{
+        speedState.map[idx] = -1;
+        speedState.missCount = (speedState.missCount || 0) + 1;
+        speedState.stability = Math.max(0, speedState.stability * 0.6 - 0.12);
+        if(speedState.missCount >= (hasFinal ? 2 : 3)){
+          fallbackNeeded = true;
+          break;
+        }
+      }
+    }
+
+    if(speedState.map.length < parts.length){
+      for(let i = speedState.map.length; i < parts.length; i++){
+        speedState.map[i] = -1;
+      }
+    }
+
+    speedState.anchor = anchor;
+
+    if(fallbackNeeded || (hasFinal && (speedState.map[parts.length - 1] ?? -1) === -1)){
+      const tailLimit = hasFinal ? 30 : 18;
+      const tailParts = parts.slice(-tailLimit);
+      const baseIndex = Math.max(anchor, speedState.lastReliable, currentWord);
+      const alignment = alignSpeedWindow(tailParts, baseIndex, hasFinal);
+      if(alignment && typeof alignment.bestIndex === 'number' && alignment.bestIndex !== -1 && alignment.bestIndex >= anchor){
+        highlightTo(alignment.bestIndex, { outcome:'match' });
+        speedState.anchor = alignment.bestIndex;
+        speedState.lastReliable = alignment.bestIndex;
+        speedState.map[parts.length - 1] = alignment.bestIndex;
+        speedState.missCount = 0;
+        const commitTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        speedState.lastEmitTs = commitTime;
+        speedState.stability = Math.min(1, speedState.stability * 0.55 + 0.45);
+        updateRealtimeTelemetry();
       }
     }
 
     speedState.history = parts.slice();
-    speedState.map = newMap;
-
-    const matchedSet = new Set(alignment.matchedWords);
-    const bestIndex = alignment.bestIndex;
-    const prevIndex = currentWord;
-
-    if(bestIndex < prevIndex){
-      highlightTo(bestIndex, { outcome:'rollback' });
+    if(speedState.map.length > parts.length){
+      speedState.map.length = parts.length;
     }
-
-    if(bestIndex >= 0){
-      const spans = getWordSpans();
-      if(bestIndex > prevIndex){
-        highlightTo(bestIndex, { outcome:'match', markSkipped:true });
-        const startIdx = Math.max(prevIndex + 1, 0);
-        for(let idx = startIdx; idx <= bestIndex; idx++){
-          if(idx >= 0 && idx < spans.length){
-            updateWordState(idx, matchedSet.has(idx) ? 'matched' : 'missed', spans);
-          }
-        }
-      }else if(bestIndex === prevIndex){
-        if(bestIndex >= 0 && bestIndex < spans.length){
-          updateWordState(bestIndex, matchedSet.has(bestIndex) ? 'matched' : 'missed', spans);
-        }
-      }else{ // rollback handled above
-        if(bestIndex >= 0 && bestIndex < spans.length){
-          updateWordState(bestIndex, matchedSet.has(bestIndex) ? 'matched' : 'missed', spans);
-        }
-      }
-
-      speedState.lastReliable = bestIndex;
-      speedState.mismatchRun = Math.max(0, alignment.unmatchedParts);
-      pendingGap = alignment.unmatchedParts >= (hasFinal ? 2 : 3) && alignment.coverage < 0.55;
-      unmatchedCount = 0;
-    }else{
-      speedState.mismatchRun++;
-    }
-
-    if(hasFinal && alignment.unmatchedParts <= 1){
-      speedState.mismatchRun = 0;
-      pendingGap = false;
-    }
-
-    const mismatchLimit = hasFinal ? 3 : 4;
-    if(speedState.mismatchRun >= mismatchLimit){
-      const rollbackIndex = speedState.lastReliable;
-      rewindHighlight(rollbackIndex);
-      speedState.mismatchRun = 0;
-      pendingGap = false;
-      unmatchedCount = 0;
-    }
+    updateRealtimeTelemetry();
   }
 
   function wordIndexFromTokenIndex(tokenIdx){
@@ -1393,8 +1613,10 @@
         updateWordState(index, 'matched', wordSpans);
         speedState.lastReliable = Math.max(speedState.lastReliable, index);
       }else if(outcome === 'skip'){
-        const from = prev < index ? prev + 1 : index;
-        updateWordStateRange(from, index, 'missed', wordSpans);
+        if(markSkipped){
+          const from = prev < index ? prev + 1 : index;
+          updateWordStateRange(from, index, 'missed', wordSpans);
+        }
       }
     }
     if(currentWord >= 0 && currentWord < wordSpans.length){
@@ -1405,6 +1627,7 @@
     lastMicIndex = index;
     pendingGap = false;
     unmatchedCount = 0;
+    updateProgressIndicator();
     if(autoScroll.checked){ wordSpans[index].scrollIntoView({block:'center', behavior:'smooth'}); }
   }
 
@@ -1618,6 +1841,8 @@
     unmatchedCount = 0;
     resetSpeedState();
     speedState.lastReliable = currentWord;
+    speedState.anchor = currentWord;
+    updateRealtimeTelemetry();
     lastTranscriptTimestamp = Date.now();
     scheduleIdleGuard();
     const modePrefix = recognitionMode === 'speed' ? '【高速】' : '【正確】';
@@ -1643,6 +1868,7 @@
       recStatus.textContent = userStopRequested ? '停止しました' : '待機中';
       userStopRequested = false;
       shouldAutoRestart = false;
+      updateRealtimeTelemetry();
       return;
     }
     clearRestartTimer();
@@ -1744,6 +1970,7 @@
     pendingGap = false;
     unmatchedCount = 0;
     resetSpeedState();
+    updateRealtimeTelemetry();
   }
 
   // ====== UI 追加: ショートカット ======
@@ -1778,6 +2005,7 @@
     pendingGap = false;
     resetSpeedState();
   });
+  autoScroll.addEventListener('change', updateSessionMeta);
   recModeRadios.forEach(radio=>{
     radio.addEventListener('change', ()=>{
       if(!radio.checked) return;
@@ -1788,6 +2016,9 @@
       pendingGap = false;
       resetSpeedState();
       speedState.lastReliable = currentWord;
+      speedState.anchor = currentWord;
+      updateSessionMeta();
+      updateRealtimeTelemetry();
       recStatus.textContent = recognitionMode === 'speed' ? '高速モード: 音声入力を待機中' : '正確モード: 音声入力を待機中';
     });
   });
@@ -1833,6 +2064,8 @@
   tokenize(''); render();
   reader.style.fontSize = '16px';
   reader.style.lineHeight = '1.7';
+  updateSessionMeta();
+  updateRealtimeTelemetry();
   </script>
 </body>
 </html>
