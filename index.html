@@ -39,6 +39,8 @@
       --miss-text: #a53a54;
       --pending-text: rgba(16, 18, 22, 0.55);
       --drag-shadow: 0 18px 40px rgba(16, 18, 22, 0.18);
+      --control-radius: 16px;
+      --pill-radius: 999px;
     }
     
     [data-theme="dark"] {
@@ -220,7 +222,7 @@
       gap:6px;
       padding:0 16px;
       appearance:none;
-      border-radius:12px;
+      border-radius:var(--control-radius);
       border:1px solid var(--surface-outline);
       background: var(--button-bg);
       backdrop-filter: blur(10px);
@@ -248,7 +250,7 @@
       gap:10px;
       min-height:44px;
       padding:8px 12px;
-      border-radius:12px;
+      border-radius:var(--control-radius);
       border:1px solid var(--surface-outline);
       background: var(--input-bg);
       backdrop-filter: blur(10px);
@@ -263,7 +265,7 @@
     }
     .control-body--lang{
       padding:8px 12px;
-      border-radius:14px;
+      border-radius:var(--control-radius);
       border:1px solid var(--surface-outline);
       background: var(--input-bg);
       box-shadow: var(--glass-shadow);
@@ -283,7 +285,7 @@
       display:flex;
       gap:6px;
       padding:4px;
-      border-radius:999px;
+      border-radius:var(--pill-radius);
       background: rgba(255, 255, 255, 0.4);
       border:1px solid var(--surface-outline);
       box-shadow: inset 0 1px 0 var(--frost-line-strong);
@@ -313,7 +315,7 @@
       align-items:center;
       justify-content:center;
       padding:10px 16px;
-      border-radius:999px;
+      border-radius:var(--pill-radius);
       font-size:12px;
       letter-spacing:.14em;
       text-transform:uppercase;
@@ -363,7 +365,7 @@
       left:calc(var(--lang-toggle-padding, 4px) + var(--slider-offset, 0px));
       width:var(--slider-width, 0px);
       height:calc(100% - (var(--lang-toggle-padding, 4px) * 2));
-      border-radius:999px;
+      border-radius:var(--pill-radius);
       background:var(--active-bg);
       box-shadow:0 8px 20px rgba(16, 18, 22, 0.12);
       transition:left .35s cubic-bezier(.4,0,.2,1), width .35s cubic-bezier(.4,0,.2,1), box-shadow .35s cubic-bezier(.4,0,.2,1);
@@ -386,34 +388,13 @@
     .lang-toggle--dragging .lang-toggle__option.is-hovered{
       transform:translateY(-1px) scale(1.02);
     }
-    .control-select{appearance:none; border:none; background:transparent; color:var(--ink); width:100%; font-size:13px; font-weight:500; outline:none}
-    .control-value{font-size:11px; color:var(--muted); letter-spacing:.02em; min-width:48px; text-align:right; margin-left:auto}
-  .control-body--range{padding:8px 12px; justify-content:space-between; align-items:center}
-  /* Make input tall enough to contain the thumb (thumb 18px + 3px border each side = 24px) */
-  .control-body--range input[type="range"]{flex:1; height:24px; -webkit-appearance:none; appearance:none; cursor:pointer; background:transparent; margin:0; padding:0; display:block; align-self:center}
-  /* Value label vertically center */
-  .control-value{font-size:11px; color:var(--muted); letter-spacing:.02em; min-width:48px; text-align:right; margin-left:auto; display:inline-flex; align-items:center}
-  /* Thumb */
-  /* Thumb: nudge up slightly to visually center inside padded container */
-  /* Tweak: use a small negative translateY to visually center the thumb.
-    -50% overshot on some browsers; -6px is a middle-ground that works well
-    across common DPI/zoom settings. If needed we can switch to box-shadow
-    for the outer ring to avoid changing element size. */
-  .control-body--range input[type="range"]::-webkit-slider-thumb{appearance:none; width:18px; height:18px; border-radius:50%; background:linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.95) 100%); border:3px solid var(--accent-500); box-shadow:0 6px 18px var(--accent-shadow); transition:transform .18s ease; transform:translateY(-6px)}
-  .control-body--range input[type="range"]::-webkit-slider-thumb:hover{transform:translateY(-6px) scale(1.06)}
-  /* Firefox */
-  .control-body--range input[type="range"]::-moz-range-thumb{width:18px; height:18px; border-radius:50%; background:linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.95) 100%); border:3px solid var(--accent-500); box-shadow:0 6px 18px var(--accent-shadow); transition:transform .18s ease; transform:translateY(-6px)}
-  .control-body--range input[type="range"]::-moz-range-thumb:hover{transform:translateY(-6px) scale(1.06)}
-  /* Track */
-  .control-body--range input[type="range"]::-webkit-slider-runnable-track{height:6px; background:var(--accent-100); border-radius:999px}
-  .control-body--range input[type="range"]::-moz-range-track{height:6px; background:var(--accent-100); border-radius:999px}
     .control-body--toggle{justify-content:space-between; gap:16px}
     .control-body--toggle .toggle{width:100%; display:inline-flex; align-items:center; gap:12px; position:relative; cursor:pointer}
     .toggle input{position:absolute; opacity:0; width:0; height:0}
     .toggle-slider{
       width:38px;
       height:22px;
-      border-radius:999px;
+      border-radius:var(--pill-radius);
       background: var(--button-bg);
       backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
@@ -456,6 +437,7 @@
       gap:6px;
       justify-content:flex-start;
       isolation:isolate;
+      border-radius:var(--pill-radius);
       --segment-padding:6px;
       --segment-slider-x:0px;
       --segment-slider-y:0px;
@@ -469,7 +451,7 @@
       left:calc(var(--segment-padding, 6px) + var(--segment-slider-x, 0px));
       width:var(--segment-slider-width, 0px);
       height:var(--segment-slider-height, 0px);
-      border-radius:10px;
+      border-radius:var(--pill-radius);
       background:var(--active-bg);
       box-shadow:0 12px 28px var(--accent-shadow);
       transition:top .35s cubic-bezier(.4,0,.2,1), left .35s cubic-bezier(.4,0,.2,1), width .35s cubic-bezier(.4,0,.2,1), height .35s cubic-bezier(.4,0,.2,1), box-shadow .35s cubic-bezier(.4,0,.2,1);
@@ -485,7 +467,7 @@
     .segment span{
       display:block;
       padding:8px 14px;
-      border-radius:10px;
+      border-radius:var(--pill-radius);
       text-align:center;
       font-size:12px;
       font-weight:500;
@@ -517,15 +499,15 @@
     .reader{
       flex:1;
       min-height:320px;
-      line-height:1.9;
-      font-size:18px;
+      line-height:1.7;
+      font-size:16px;
       letter-spacing:.01em;
       white-space:pre-wrap;
       background: var(--input-bg);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border:1px solid var(--surface-outline);
-      border-radius:15px;
+      border-radius:var(--control-radius);
       padding:18px;
       overflow:auto;
       box-shadow: var(--glass-shadow);
@@ -631,7 +613,19 @@
       .control { flex: 1 1 auto; min-width: 100%; }
       .control-title { font-size: 10px; }
       .control-body { min-height: 40px; padding: 6px 10px; }
-      .control-select { font-size: 12px; }
+
+      .control-body--segment,
+      .control-body--toggle {
+        background: var(--panel);
+        border: 1px solid var(--frost-line);
+        box-shadow: var(--glass-shadow);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+      }
+
+      .control-body--segment::before {
+        box-shadow: 0 18px 36px var(--accent-shadow);
+      }
       
       .controls--mic { flex-direction: column; gap: 10px; }
       .controls--mic button { width: 100%; min-width: 100%; }
@@ -711,20 +705,6 @@
                   <input type="radio" id="lang-ja-jp" name="recLang" value="ja-JP">
                   <label class="lang-toggle__option" for="lang-ja-jp">JA-JP</label>
                 </div>
-              </div>
-            </label>
-            <label class="control">
-              <span class="control-title">Font</span>
-              <div class="control-body control-body--range">
-                <input id="fontSize" type="range" min="16" max="36" step="1" value="18">
-                <span id="fontVal" class="control-value">18px</span>
-              </div>
-            </label>
-            <label class="control">
-              <span class="control-title">Line</span>
-              <div class="control-body control-body--range">
-                <input id="lineH" type="range" min="1.2" max="2.2" step="0.05" value="1.9">
-                <span id="lineVal" class="control-value">1.90</span>
               </div>
             </label>
             <label class="control">
@@ -893,13 +873,19 @@
 
     langToggleEl.addEventListener('pointerdown', (ev) => {
       if(ev.pointerType === 'mouse' && ev.button !== 0) return;
+      const optionLabel = ev.target.closest('label.lang-toggle__option');
+      if(ev.pointerType === 'mouse' && optionLabel && langToggleEl.contains(optionLabel)){
+        return;
+      }
       ensureMetrics();
       langDragState.active = true;
       langDragState.pointerId = ev.pointerId;
       langToggleEl.classList.add('lang-toggle--dragging');
       try{ langToggleEl.setPointerCapture(ev.pointerId); }catch(_err){}
       updateDragVisual(ev.clientX, false);
-      ev.preventDefault();
+      if(ev.pointerType !== 'mouse'){
+        ev.preventDefault();
+      }
     });
     langToggleEl.addEventListener('pointermove', handlePointerMove);
     langToggleEl.addEventListener('pointerup', handlePointerUp);
@@ -914,10 +900,6 @@
   const btnMicStop = document.getElementById('btnMicStop');
   const recStatus = document.getElementById('recStatus');
   const autoScroll = document.getElementById('autoScroll');
-  const fontSize = document.getElementById('fontSize');
-  const lineH = document.getElementById('lineH');
-  const fontVal = document.getElementById('fontVal');
-  const lineVal = document.getElementById('lineVal');
   const recModeRadios = document.querySelectorAll('input[name=\"recMode\"]');
   const segmentContainer = document.querySelector('.control-body--segment');
   const updateSegmentSlider = () => {
@@ -1764,9 +1746,7 @@
     resetSpeedState();
   }
 
-  // ====== UI 追加: 文字サイズ/行間 & ショートカット ======
-  fontSize.addEventListener('input', ()=>{ reader.style.fontSize = fontSize.value + 'px'; fontVal.textContent = fontSize.value + 'px'; });
-  lineH.addEventListener('input', ()=>{ reader.style.lineHeight = lineH.value; lineVal.textContent = parseFloat(lineH.value).toFixed(2); });
+  // ====== UI 追加: ショートカット ======
 
   document.addEventListener('keydown', (e)=>{
     if(e.key.toLowerCase() === 's'){ e.preventDefault(); recognizing ? micStop() : micStart(); }
@@ -1851,8 +1831,8 @@
 
   // 初期描画
   tokenize(''); render();
-  reader.style.fontSize = fontSize.value + 'px';
-  reader.style.lineHeight = lineH.value;
+  reader.style.fontSize = '16px';
+  reader.style.lineHeight = '1.7';
   </script>
 </body>
 </html>
