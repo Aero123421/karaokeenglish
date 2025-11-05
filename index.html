@@ -33,6 +33,12 @@
       --accent-shadow: rgba(16, 18, 22, 0.14);
       --frost-line: rgba(255, 255, 255, 0.65);
       --frost-line-strong: rgba(255, 255, 255, 0.9);
+      --match-bg: rgba(56, 176, 96, 0.16);
+      --match-text: #1d5c45;
+      --miss-bg: rgba(239, 71, 111, 0.12);
+      --miss-text: #a53a54;
+      --pending-text: rgba(16, 18, 22, 0.55);
+      --drag-shadow: 0 18px 40px rgba(16, 18, 22, 0.18);
     }
     
     [data-theme="dark"] {
@@ -61,6 +67,12 @@
       --accent-shadow: rgba(0, 0, 0, 0.7);
       --frost-line: rgba(255, 255, 255, 0.12);
       --frost-line-strong: rgba(255, 255, 255, 0.28);
+      --match-bg: rgba(56, 176, 96, 0.22);
+      --match-text: rgba(209, 246, 225, 0.92);
+      --miss-bg: rgba(239, 71, 111, 0.24);
+      --miss-text: rgba(255, 189, 201, 0.9);
+      --pending-text: rgba(245, 245, 245, 0.48);
+      --drag-shadow: 0 20px 48px rgba(0, 0, 0, 0.68);
     }
     *{box-sizing:border-box}
     html,body{height:100%; min-height:100vh}
@@ -278,6 +290,9 @@
       --lang-toggle-padding:4px;
       --slider-offset:0px;
       --slider-width:0px;
+      touch-action: pan-x;
+      user-select:none;
+      cursor:pointer;
     }
     [data-theme="dark"] .lang-toggle{
       background: rgba(12, 12, 12, 0.58);
@@ -302,7 +317,7 @@
       color:var(--muted);
       font-weight:500;
       cursor:pointer;
-      transition:color .25s ease;
+      transition:color .25s ease, transform .25s cubic-bezier(.25,.8,.25,1);
       overflow:hidden;
       flex:1 1 0;
       min-width:0;
@@ -355,6 +370,18 @@
     [data-theme="dark"] .lang-toggle__slider{
       background:rgba(245, 245, 245, 0.12);
       box-shadow:0 14px 28px rgba(0,0,0,0.58);
+    }
+    .lang-toggle--dragging{
+      box-shadow: var(--drag-shadow);
+    }
+    .lang-toggle--dragging .lang-toggle__slider{
+      transition:left .12s cubic-bezier(.22,.61,.36,1), width .12s cubic-bezier(.22,.61,.36,1), box-shadow .2s ease;
+    }
+    .lang-toggle__option.is-hovered{
+      color:var(--active-text);
+    }
+    .lang-toggle--dragging .lang-toggle__option.is-hovered{
+      transform:translateY(-1px) scale(1.02);
     }
     .control-select{appearance:none; border:none; background:transparent; color:var(--ink); width:100%; font-size:13px; font-weight:500; outline:none}
     .control-value{font-size:11px; color:var(--muted); letter-spacing:.02em; min-width:48px; text-align:right; margin-left:auto}
@@ -505,20 +532,49 @@
       border-radius:8px;
       transition:background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .25s ease;
       cursor: pointer;
+      position:relative;
+      color:var(--ink);
     }
     .word:hover{
       transform:translateY(-1px);
       box-shadow:0 4px 12px var(--accent-shadow);
       background: var(--button-hover);
     }
-    .word.active{
+    .word.word--pending{
+      color:var(--pending-text);
+      background:transparent;
+    }
+    .word.word--matched{
+      background:var(--match-bg);
+      color:var(--match-text);
+      box-shadow:0 4px 14px rgba(16, 18, 22, 0.18);
+      font-weight:500;
+    }
+    .word.word--matched:hover{
+      background:var(--match-bg);
+    }
+    .word.word--missed{
+      background:var(--miss-bg);
+      color:var(--miss-text);
+      box-shadow:0 4px 14px rgba(16, 18, 22, 0.14);
+      text-decoration: underline wavy currentColor;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 6px;
+      font-weight:500;
+    }
+    .word.word--missed:hover{
+      background:var(--miss-bg);
+    }
+    .word.word--active{
+      box-shadow:0 6px 24px var(--accent-shadow);
+      transform:translateY(-1px);
+      animation:highlightPulse .8s ease;
+    }
+    .word.word--active:not(.word--missed):not(.word--matched){
       background:var(--active-bg);
       color:var(--active-text);
-      box-shadow:0 4px 20px var(--accent-shadow);
-      animation:highlightPulse .8s ease;
-      font-weight: 500;
+      font-weight:500;
     }
-    .word.past{color:var(--past-ink); opacity:.75}
 
     .hint{font-size:12px; color:var(--muted); margin-top:8px}
     .kbd{
@@ -632,7 +688,7 @@
         </div>
         <div class="body">
           <textarea id="textInput" spellcheck="false" placeholder="ここに英文スクリプトを貼り付けてください"></textarea>
-          <div class="hint">単語単位で分割し、発話に応じて <b>現在の単語（黒反転）</b> と <b>既読（薄灰）</b> を表示します。任意の単語をクリックすると、その位置から再開できます。</div>
+          <div class="hint">単語単位で分割し、発話に応じて <b>現在の単語</b> と <b>正しく読めた単語（緑）</b>／<b>聞き取りにくかった単語（赤）</b> を表示します。任意の単語をタップするとその位置から再開できます。</div>
         </div>
       </section>
 
@@ -744,6 +800,109 @@
     });
     window.addEventListener('resize', scheduleLangSlider);
   }
+
+  if (langToggleEl && langSliderEl) {
+    const langOptions = Array.from(langToggleEl.querySelectorAll('.lang-toggle__option'));
+    const langDragState = { active:false, pointerId:null, rect:null, paddingLeft:0, paddingRight:0, borderLeft:0, borderRight:0, hover:null };
+
+    const ensureMetrics = () => {
+      langDragState.rect = langToggleEl.getBoundingClientRect();
+      const styles = getComputedStyle(langToggleEl);
+      langDragState.paddingLeft = parseFloat(styles.paddingLeft) || 0;
+      langDragState.paddingRight = parseFloat(styles.paddingRight) || 0;
+      langDragState.borderLeft = parseFloat(styles.borderLeftWidth) || 0;
+      langDragState.borderRight = parseFloat(styles.borderRightWidth) || 0;
+    };
+
+    const commitOption = (label) => {
+      if(!label) return;
+      const id = label.getAttribute('for');
+      if(!id) return;
+      const input = langToggleEl.querySelector(`#${id}`);
+      if(input && !input.checked){
+        input.checked = true;
+        input.dispatchEvent(new Event('change', { bubbles:true }));
+      }
+    };
+
+    const updateDragVisual = (clientX, commit = false) => {
+      if(!langDragState.rect) ensureMetrics();
+      const { rect, paddingLeft, paddingRight, borderLeft, borderRight } = langDragState;
+      if(!rect) return;
+      const innerWidth = rect.width - paddingLeft - paddingRight - borderLeft - borderRight;
+      if(innerWidth <= 0) return;
+      let x = clientX - rect.left - borderLeft - paddingLeft;
+      x = Math.max(0, Math.min(innerWidth, x));
+      let closestLabel = null;
+      let minDist = Infinity;
+      langOptions.forEach(label => {
+        const optionRect = label.getBoundingClientRect();
+        const center = optionRect.left - rect.left - borderLeft - paddingLeft + optionRect.width / 2;
+        const dist = Math.abs(center - x);
+        if(dist < minDist){
+          minDist = dist;
+          closestLabel = label;
+        }
+      });
+      if(!closestLabel) return;
+      if(langDragState.hover && langDragState.hover !== closestLabel){
+        langDragState.hover.classList.remove('is-hovered');
+      }
+      closestLabel.classList.add('is-hovered');
+      langDragState.hover = closestLabel;
+      const optionRect = closestLabel.getBoundingClientRect();
+      const sliderWidth = optionRect.width;
+      const maxOffset = Math.max(0, innerWidth - sliderWidth);
+      const offset = Math.max(0, Math.min(x - sliderWidth / 2, maxOffset));
+      langToggleEl.style.setProperty('--slider-width', `${sliderWidth}px`);
+      langToggleEl.style.setProperty('--slider-offset', `${offset}px`);
+      if(commit){
+        commitOption(closestLabel);
+        requestAnimationFrame(updateLangSlider);
+      }
+    };
+
+    const finishDrag = () => {
+      if(langDragState.pointerId !== null){
+        try{ langToggleEl.releasePointerCapture(langDragState.pointerId); }catch(_err){}
+      }
+      langDragState.pointerId = null;
+      langDragState.active = false;
+      langToggleEl.classList.remove('lang-toggle--dragging');
+      if(langDragState.hover){
+        langDragState.hover.classList.remove('is-hovered');
+        langDragState.hover = null;
+      }
+      langDragState.rect = null;
+      requestAnimationFrame(updateLangSlider);
+    };
+
+    const handlePointerMove = (ev) => {
+      if(!langDragState.active || (langDragState.pointerId !== null && ev.pointerId !== langDragState.pointerId)) return;
+      updateDragVisual(ev.clientX, false);
+    };
+
+    const handlePointerUp = (ev) => {
+      if(!langDragState.active || (langDragState.pointerId !== null && ev.pointerId !== langDragState.pointerId)) return;
+      updateDragVisual(ev.clientX, true);
+      finishDrag();
+    };
+
+    langToggleEl.addEventListener('pointerdown', (ev) => {
+      if(ev.pointerType === 'mouse' && ev.button !== 0) return;
+      ensureMetrics();
+      langDragState.active = true;
+      langDragState.pointerId = ev.pointerId;
+      langToggleEl.classList.add('lang-toggle--dragging');
+      try{ langToggleEl.setPointerCapture(ev.pointerId); }catch(_err){}
+      updateDragVisual(ev.clientX, false);
+      ev.preventDefault();
+    });
+    langToggleEl.addEventListener('pointermove', handlePointerMove);
+    langToggleEl.addEventListener('pointerup', handlePointerUp);
+    langToggleEl.addEventListener('pointercancel', handlePointerUp);
+    langToggleEl.addEventListener('lostpointercapture', finishDrag);
+  }
   const getSelectedLang = () => {
     const active = recLangRadios.find(input => input.checked);
     return active ? active.value : 'en-US';
@@ -799,6 +958,7 @@
   let lastMicIndex = -1;     // マイクで進んだインデックス
   let recognizer = null;
   let normalizedWords = [];
+  let wordStates = [];
   let lastResultKey = '';
   let unmatchedCount = 0;
   let pendingGap = false;
@@ -812,6 +972,7 @@
   let permissionPrimed = false;
   let recognitionMode = 'precise';
   let lastSpeedNorm = '';
+  let speedState = { history: [], map: [], mismatchRun: 0, lastReliable: -1 };
 
   // ====== ユーティリティ ======
   function normalizeForMatch(str){
@@ -829,6 +990,7 @@
     clearRestartTimer(); clearIdleGuard();
     lastTranscriptTimestamp = 0;
     lastSpeedNorm = '';
+    resetSpeedState();
     let i = 0;
     while(i < text.length){
       if(/\s/.test(text[i])){
@@ -845,6 +1007,7 @@
       }
     }
     lastSourceText = text;
+    wordStates = new Array(normalizedWords.length).fill('pending');
   }
 
   function render(){
@@ -855,7 +1018,9 @@
         span.className = 'word';
         span.dataset.i = wordIndexFromTokenIndex(k);
         span.textContent = tok.text;
-        span.addEventListener('click', ()=>{ highlightTo(parseInt(span.dataset.i,10)); });
+        span.addEventListener('click', ()=>{
+          highlightTo(parseInt(span.dataset.i,10), { manual:true });
+        });
         frag.appendChild(span);
       }else{
         frag.appendChild(document.createTextNode(tok.text));
@@ -863,24 +1028,171 @@
     });
     reader.innerHTML = '';
     reader.appendChild(frag);
+    const spans = getWordSpans();
+    if(wordStates.length !== spans.length){
+      wordStates = new Array(spans.length).fill('pending');
+    }
+    spans.forEach((span, idx)=>{
+      applySpanState(span, wordStates[idx] || 'pending');
+    });
     currentWord = -1;
     lastMicIndex = -1;
     pendingGap = false;
     unmatchedCount = 0;
   }
 
+  function getWordSpans(){
+    return reader.querySelectorAll('.word');
+  }
+
+  function applySpanState(span, state){
+    span.classList.toggle('word--matched', state === 'matched');
+    span.classList.toggle('word--missed', state === 'missed');
+    span.classList.toggle('word--pending', state === 'pending');
+  }
+
+  function updateWordState(index, state, spans){
+    if(index < 0 || index >= wordStates.length) return;
+    wordStates[index] = state;
+    const list = spans || getWordSpans();
+    const span = list[index];
+    if(span) applySpanState(span, state);
+  }
+
+  function updateWordStateRange(from, to, state, spans){
+    if(!wordStates.length) return;
+    const list = spans || getWordSpans();
+    const start = Math.max(0, from);
+    const end = Math.min(wordStates.length - 1, to);
+    if(end < start) return;
+    for(let i=start; i<=end; i++){
+      wordStates[i] = state;
+      const span = list[i];
+      if(span) applySpanState(span, state);
+    }
+  }
+
+  function resetAllWordStates(){
+    wordStates = new Array(normalizedWords.length).fill('pending');
+    const spans = getWordSpans();
+    spans.forEach(span=>applySpanState(span, 'pending'));
+  }
+
+  function resetSpeedState(){
+    speedState = { history: [], map: [], mismatchRun: 0, lastReliable: -1 };
+  }
+
+  function rewindHighlight(targetIndex){
+    const spans = getWordSpans();
+    const clamped = Math.min(Math.max(targetIndex, -1), spans.length - 1);
+    for(let i=clamped + 1; i<wordStates.length; i++){
+      if(wordStates[i] !== 'pending'){
+        wordStates[i] = 'pending';
+      }
+      const span = spans[i];
+      if(span){
+        applySpanState(span, 'pending');
+        span.classList.remove('word--active', 'active');
+      }
+    }
+    if(currentWord >= 0 && currentWord < spans.length){
+      spans[currentWord].classList.remove('word--active', 'active');
+    }
+    currentWord = clamped;
+    lastMicIndex = clamped;
+    if(clamped >= 0){
+      spans[clamped].classList.add('word--active', 'active');
+      if(autoScroll.checked){
+        spans[clamped].scrollIntoView({block:'center', behavior:'smooth'});
+      }
+    }
+  }
+
+  function processSpeedRecognition(parts, hasFinal){
+    if(normalizedWords.length === 0) return;
+    const mismatchLimit = hasFinal ? 2 : 3;
+    const prevHistory = speedState.history;
+    const prevMap = speedState.map;
+    const maxPrefix = Math.min(prevHistory.length, parts.length);
+    let prefix = 0;
+    while(prefix < maxPrefix && prevHistory[prefix] === parts[prefix]) prefix++;
+    if(prefix < prevHistory.length){
+      const rollbackIndex = prefix > 0 ? prevMap[prefix - 1] : -1;
+      rewindHighlight(rollbackIndex);
+      speedState.mismatchRun = 0;
+      speedState.lastReliable = rollbackIndex;
+      pendingGap = false;
+      unmatchedCount = 0;
+    }
+    speedState.history = prevHistory.slice(0, prefix);
+    speedState.map = prevMap.slice(0, prefix);
+
+    for(let i=prefix; i<parts.length; i++){
+      const nextIndex = currentWord < 0 ? 0 : Math.min(currentWord + 1, normalizedWords.length - 1);
+      if(nextIndex >= normalizedWords.length) break;
+      const expected = normalizedWords[nextIndex];
+      const score = scoreWordMatch(expected, parts[i]);
+      if(score >= 1){
+        highlightTo(nextIndex, { outcome: 'match', markSkipped:false });
+        speedState.mismatchRun = 0;
+        speedState.lastReliable = nextIndex;
+      }else{
+        highlightTo(nextIndex, { outcome: 'skip', markSkipped:false });
+        speedState.mismatchRun++;
+        if(speedState.mismatchRun >= mismatchLimit){
+          const rollbackIndex = speedState.lastReliable;
+          rewindHighlight(rollbackIndex);
+          const cutoff = speedState.map.findIndex(idx => idx > rollbackIndex);
+          const keep = cutoff === -1 ? speedState.map.length : cutoff;
+          speedState.history = speedState.history.slice(0, keep);
+          speedState.map = speedState.map.slice(0, keep);
+          speedState.lastReliable = rollbackIndex;
+          speedState.mismatchRun = 0;
+          pendingGap = false;
+          unmatchedCount = 0;
+          break;
+        }
+      }
+      speedState.history.push(parts[i]);
+      speedState.map.push(nextIndex);
+      if(nextIndex >= normalizedWords.length - 1) break;
+    }
+  }
+
   function wordIndexFromTokenIndex(tokenIdx){
     let count = 0; for(let i=0;i<=tokenIdx;i++) if(tokens[i].type==='word') count++; return count-1;
   }
 
-  function highlightTo(index){
-    const wordSpans = reader.querySelectorAll('.word');
-    if(index < 0 || index >= wordSpans.length) return;
-    for(let i=0;i<wordSpans.length;i++){
-      wordSpans[i].classList.remove('active');
-      if(i < index) wordSpans[i].classList.add('past'); else wordSpans[i].classList.remove('past');
+  function highlightTo(index, options = {}){
+    const { manual = false, outcome = 'match', markSkipped = true } = options;
+    const wordSpans = getWordSpans();
+    if(outcome === 'rollback' && !manual){
+      rewindHighlight(index);
+      pendingGap = false;
+      unmatchedCount = 0;
+      return;
     }
-    wordSpans[index].classList.add('active');
+    if(index < 0 || index >= wordSpans.length) return;
+    if(!manual){
+      const prev = currentWord;
+      if(outcome === 'match'){
+        if(markSkipped){
+          const start = prev >= 0 ? prev + 1 : 0;
+          if(index - start > 0){
+            updateWordStateRange(start, index - 1, 'missed', wordSpans);
+          }
+        }
+        updateWordState(index, 'matched', wordSpans);
+        speedState.lastReliable = Math.max(speedState.lastReliable, index);
+      }else if(outcome === 'skip'){
+        const from = prev < index ? prev + 1 : index;
+        updateWordStateRange(from, index, 'missed', wordSpans);
+      }
+    }
+    if(currentWord >= 0 && currentWord < wordSpans.length){
+      wordSpans[currentWord].classList.remove('word--active', 'active');
+    }
+    wordSpans[index].classList.add('word--active', 'active');
     currentWord = index;
     lastMicIndex = index;
     pendingGap = false;
@@ -1096,6 +1408,8 @@
     btnMicStop.disabled = false;
     pendingGap = false;
     unmatchedCount = 0;
+    resetSpeedState();
+    speedState.lastReliable = currentWord;
     lastTranscriptTimestamp = Date.now();
     scheduleIdleGuard();
     const modePrefix = recognitionMode === 'speed' ? '【高速】' : '【正確】';
@@ -1168,13 +1482,7 @@
         recStatus.textContent = '高速モード: テキストがありません';
         return;
       }
-      // Reduce advance speed from previous 1-3 words to 1-2 words
-      // Advance by 2 words only for longer phrases (4+ parts), otherwise advance by 1
-      const advance = parts.length >= 4 ? 2 : 1;
-      let target = currentWord;
-      if(target < 0) target = 0;
-      else target = Math.min(target + advance, normalizedWords.length - 1);
-      highlightTo(target);
+      processSpeedRecognition(parts, hasFinal);
       recStatus.textContent = (hasFinal ? '高速認識: ' : '高速処理中: ') + transcript;
       return;
     }
@@ -1190,18 +1498,18 @@
     const lookAhead = hasFinal ? 22 : 14;
     const targetIndex = findNextWordIndex(parts, baseIndex, lookAhead);
     if(targetIndex !== -1 && (targetIndex >= currentWord || hasFinal || currentWord === -1)){
-      highlightTo(targetIndex);
+      highlightTo(targetIndex, { outcome: 'match' });
     }else{
       unmatchedCount++;
       const needsRecovery = hasFinal || unmatchedCount >= 2 || pendingGap;
       if(needsRecovery){
         const globalIndex = findBestGlobalMatch(parts, Math.max(currentWord, lastMicIndex));
         if(globalIndex !== -1 && (globalIndex >= currentWord || currentWord === -1)){
-          highlightTo(globalIndex);
+          highlightTo(globalIndex, { outcome: 'match' });
         }else if(hasFinal && normalizedWords.length){
           const softAdvance = Math.min((currentWord === -1 ? 0 : currentWord + 1), normalizedWords.length - 1);
           if(softAdvance > currentWord){
-            highlightTo(softAdvance);
+            highlightTo(softAdvance, { outcome: 'skip', markSkipped:false });
           }else{
             pendingGap = true;
           }
@@ -1227,6 +1535,7 @@
     lastSpeedNorm = '';
     pendingGap = false;
     unmatchedCount = 0;
+    resetSpeedState();
   }
 
   // ====== UI 追加: 文字サイズ/行間 & ショートカット ======
@@ -1235,14 +1544,34 @@
 
   document.addEventListener('keydown', (e)=>{
     if(e.key.toLowerCase() === 's'){ e.preventDefault(); recognizing ? micStop() : micStart(); }
-    if(e.key === 'ArrowRight'){ e.preventDefault(); highlightTo(Math.min(currentWord+1, reader.querySelectorAll('.word').length-1)); }
-    if(e.key === 'ArrowLeft'){ e.preventDefault(); highlightTo(Math.max(currentWord-1, 0)); }
+    if(e.key === 'ArrowRight'){
+      e.preventDefault();
+      highlightTo(Math.min(currentWord+1, reader.querySelectorAll('.word').length-1), { manual:true });
+    }
+    if(e.key === 'ArrowLeft'){
+      e.preventDefault();
+      highlightTo(Math.max(currentWord-1, 0), { manual:true });
+    }
   });
 
   // ====== そのほか ======
   btnMicStart.addEventListener('click', micStart);
   btnMicStop.addEventListener('click', micStop);
-  resetHL.addEventListener('click', ()=>{ reader.querySelectorAll('.word').forEach(s=>{s.classList.remove('active','past')}); currentWord=-1; lastMicIndex=-1; lastResultKey=''; lastSpeedNorm=''; unmatchedCount=0; pendingGap=false; });
+  resetHL.addEventListener('click', ()=>{
+    const spans = getWordSpans();
+    spans.forEach(span=>{
+      span.classList.remove('word--active', 'active');
+      applySpanState(span, 'pending');
+    });
+    resetAllWordStates();
+    currentWord = -1;
+    lastMicIndex = -1;
+    lastResultKey = '';
+    lastSpeedNorm = '';
+    unmatchedCount = 0;
+    pendingGap = false;
+    resetSpeedState();
+  });
   recModeRadios.forEach(radio=>{
     radio.addEventListener('change', ()=>{
       if(!radio.checked) return;
@@ -1251,6 +1580,8 @@
       lastSpeedNorm = '';
       unmatchedCount = 0;
       pendingGap = false;
+      resetSpeedState();
+      speedState.lastReliable = currentWord;
       recStatus.textContent = recognitionMode === 'speed' ? '高速モード: 音声入力を待機中' : '正確モード: 音声入力を待機中';
     });
   });
