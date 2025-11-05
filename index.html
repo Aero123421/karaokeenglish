@@ -6,61 +6,66 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>音声認識カラオケ・Glassmorphic版</title>
   <style>
-    /* ── Glassmorphic Light & Dark Theme ───────────────────────────── */
+    /* ── Neutral Glass Theme ───────────────────────────── */
     :root{
-      --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --bg-overlay: rgba(255, 255, 255, 0.1);
-      --ink:#1f2937;         /* 文字色 */
-      --muted:#6b7280;       /* 補助文字 */
-      --panel: rgba(255, 255, 255, 0.25);       /* パネル背景 - glassmorphic */
-      --panel-hover: rgba(255, 255, 255, 0.35);
-      --border: rgba(255, 255, 255, 0.18);      /* 枠線 */
-      --active-bg:#667eea;   /* 現在の単語 */
-      --active-text: #ffffff;
-      --past-ink:#94a3b8;    /* 既読: 薄いグレー */
-      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-      --glass-shadow-hover: 0 12px 40px 0 rgba(31, 38, 135, 0.5);
-      --input-bg: rgba(255, 255, 255, 0.5);
-      --button-bg: rgba(255, 255, 255, 0.3);
-      --button-hover: rgba(255, 255, 255, 0.5);
+      --bg: linear-gradient(140deg, #f7f7f8 0%, #ffffff 55%, #eceef2 100%);
+      --bg-overlay: rgba(255, 255, 255, 0.55);
+      --ink:#101216;
+      --muted:#646872;
+      --panel: rgba(255, 255, 255, 0.78);
+      --panel-hover: rgba(255, 255, 255, 0.9);
+      --border: rgba(255, 255, 255, 0.65);
+      --surface-outline: rgba(16, 18, 22, 0.08);
+      --active-bg: rgba(16, 18, 22, 0.08);
+      --active-text: #101216;
+      --past-ink:#8b8f98;
+      --glass-shadow: 0 24px 48px 0 rgba(16, 18, 22, 0.1);
+      --glass-shadow-hover: 0 32px 68px 0 rgba(16, 18, 22, 0.18);
+      --input-bg: rgba(255, 255, 255, 0.72);
+      --button-bg: rgba(255, 255, 255, 0.68);
+      --button-hover: rgba(255, 255, 255, 0.88);
       --white: #ffffff;
-      --toggle-knob: #ffffff;
-      /* Accent palette (modern purple/blue) */
-      --accent-600: #5b21b6;
-      --accent-500: #667eea; /* primary accent */
-      --accent-300: #a78bfa;
-      --accent-100: #ede9fe;
-      --accent-shadow: rgba(102, 126, 234, 0.3);
+      --toggle-knob: rgba(16, 18, 22, 0.82);
+      --accent-600: rgba(16, 18, 22, 0.75);
+      --accent-500: rgba(16, 18, 22, 0.62);
+      --accent-300: rgba(16, 18, 22, 0.35);
+      --accent-100: rgba(16, 18, 22, 0.12);
+      --accent-shadow: rgba(16, 18, 22, 0.14);
+      --frost-line: rgba(255, 255, 255, 0.65);
+      --frost-line-strong: rgba(255, 255, 255, 0.9);
     }
     
     [data-theme="dark"] {
-      --bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      --bg-overlay: rgba(0, 0, 0, 0.2);
-      --ink: #e5e7eb;
-      --muted: #9ca3af;
-      --panel: rgba(30, 30, 46, 0.4);
-      --panel-hover: rgba(30, 30, 46, 0.6);
-      --border: rgba(255, 255, 255, 0.1);
-      --active-bg: #8b5cf6;
-      --active-text: #ffffff;
-      --past-ink: #6b7280;
-      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-      --glass-shadow-hover: 0 12px 40px 0 rgba(0, 0, 0, 0.7);
-      --input-bg: rgba(30, 30, 46, 0.5);
-      --button-bg: rgba(255, 255, 255, 0.1);
-      --button-hover: rgba(255, 255, 255, 0.2);
+      --bg: linear-gradient(160deg, #040404 0%, #0a0a0a 55%, #050505 100%);
+      --bg-overlay: rgba(0, 0, 0, 0.65);
+      --ink: #f5f5f5;
+      --muted: #9ea2ac;
+      --panel: rgba(12, 12, 12, 0.68);
+      --panel-hover: rgba(12, 12, 12, 0.82);
+      --border: rgba(255, 255, 255, 0.08);
+      --surface-outline: rgba(0, 0, 0, 0.6);
+      --active-bg: rgba(245, 245, 245, 0.12);
+      --active-text: #f5f5f5;
+      --past-ink: #6d7078;
+      --glass-shadow: 0 28px 64px 0 rgba(0, 0, 0, 0.72);
+      --glass-shadow-hover: 0 36px 80px 0 rgba(0, 0, 0, 0.86);
+      --input-bg: rgba(12, 12, 12, 0.72);
+      --button-bg: rgba(255, 255, 255, 0.08);
+      --button-hover: rgba(255, 255, 255, 0.16);
       --white: #ffffff;
-      --toggle-knob: #ffffff;
-      --accent-600: #7c3aed;
-      --accent-500: #8b5cf6;
-      --accent-300: #a78bfa;
-      --accent-100: #2e1065;
-      --accent-shadow: rgba(139, 92, 246, 0.4);
+      --toggle-knob: rgba(255, 255, 255, 0.88);
+      --accent-600: rgba(245, 245, 245, 0.88);
+      --accent-500: rgba(245, 245, 245, 0.68);
+      --accent-300: rgba(245, 245, 245, 0.38);
+      --accent-100: rgba(245, 245, 245, 0.12);
+      --accent-shadow: rgba(0, 0, 0, 0.7);
+      --frost-line: rgba(255, 255, 255, 0.12);
+      --frost-line-strong: rgba(255, 255, 255, 0.28);
     }
     *{box-sizing:border-box}
     html,body{height:100%; min-height:100vh}
     body{
-      margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
+      margin:0; font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic Medium", "BIZ UDGothic", "Segoe UI", sans-serif;
       color:var(--ink); 
       background: var(--bg);
       background-attachment: fixed;
@@ -87,7 +92,7 @@
       background: var(--button-bg);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      border: 1px solid var(--border);
+      border: 1px solid var(--surface-outline);
       border-radius: 50px;
       padding: 8px 16px;
       display: inline-flex;
@@ -110,15 +115,49 @@
     .layout{display:flex; flex-direction:column; gap:18px; align-items:stretch}
 
     .card{
+      position:relative;
       background: var(--panel);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border:1px solid var(--border);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border:1px solid var(--surface-outline);
       border-radius:20px;
       display:flex;
       flex-direction:column;
       overflow:hidden;
       box-shadow: var(--glass-shadow);
+    }
+    .card::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08));
+      border:1px solid var(--frost-line);
+      mix-blend-mode:screen;
+      pointer-events:none;
+      opacity:0.85;
+    }
+    .card::after{
+      content:'';
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      box-shadow: inset 0 1px 0 var(--frost-line-strong), inset 0 -24px 48px rgba(16, 18, 22, 0.08);
+      pointer-events:none;
+      opacity:0.8;
+    }
+    [data-theme="dark"] .card::before{
+      background: linear-gradient(150deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02));
+      border-color: var(--frost-line);
+      opacity:1;
+      mix-blend-mode: normal;
+    }
+    [data-theme="dark"] .card::after{
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -32px 60px rgba(0, 0, 0, 0.5);
+    }
+    .card > *{
+      position:relative;
+      z-index:1;
     }
     .card .head{
       display:flex;
@@ -126,8 +165,8 @@
       justify-content:space-between;
       gap:8px;
       padding:14px 18px;
-      border-bottom:1px solid var(--border);
-      background: rgba(255, 255, 255, 0.05);
+      border-bottom:1px solid var(--surface-outline);
+      background: rgba(255, 255, 255, 0.08);
     }
     .card .head h2{font-size:15px; margin:0; color:var(--ink); letter-spacing:.01em; font-weight: 600}
     .card .body{padding:16px 18px; display:flex; flex-direction:column; gap:14px}
@@ -139,7 +178,7 @@
       max-height:520px;
       resize:vertical;
       border-radius:15px;
-      border:1px solid var(--border);
+      border:1px solid var(--surface-outline);
       background: var(--input-bg);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
@@ -153,8 +192,8 @@
       transition: all 0.3s ease;
     }
     textarea:focus {
-      border-color: var(--accent-500);
-      box-shadow: 0 8px 32px 0 var(--accent-shadow);
+      border-color: var(--frost-line);
+      box-shadow: 0 28px 60px 0 var(--accent-shadow);
       transform: translateY(-2px);
     }
 
@@ -167,7 +206,7 @@
       padding:0 16px;
       appearance:none;
       border-radius:12px;
-      border:1px solid var(--border);
+      border:1px solid var(--surface-outline);
       background: var(--button-bg);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
@@ -179,14 +218,15 @@
     }
     .controls button:hover{
       transform:translateY(-2px);
-      box-shadow:0 12px 24px var(--accent-shadow);
+      box-shadow:0 18px 30px var(--accent-shadow);
       background: var(--button-hover);
     }
-    .controls button:active{transform:translateY(0); box-shadow:0 4px 12px var(--accent-shadow)}
-    .controls button:disabled{opacity:.55; cursor:not-allowed; transform:none; box-shadow: var(--glass-shadow)}
-    .controls--options{display:flex; flex-wrap:wrap; gap:18px; align-items:stretch}
-    .control{flex:1 1 190px; display:flex; flex-direction:column; gap:10px; font-size:12px; color:#4b5563; min-width:160px}
-    .control-title{font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:#6b7280}
+    .controls button:active{transform:translateY(0); box-shadow:0 6px 16px var(--accent-shadow)}
+    .controls button:disabled{opacity:.55; cursor:not-allowed; transform:none; box-shadow: inset 0 0 0 1px var(--surface-outline)}
+    .controls--options{display:flex; flex-wrap:wrap; column-gap:18px; row-gap:22px; align-items:stretch}
+    .control{flex:1 1 190px; display:flex; flex-direction:column; gap:10px; font-size:12px; color:var(--muted); min-width:160px}
+    .control--toggle{flex:1 1 100%;}
+    .control-title{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
     .control-body{
       display:flex;
       align-items:center;
@@ -194,7 +234,7 @@
       min-height:44px;
       padding:8px 12px;
       border-radius:12px;
-      border:1px solid var(--border);
+      border:1px solid var(--surface-outline);
       background: var(--input-bg);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
@@ -202,9 +242,119 @@
       transition:box-shadow .25s ease, transform .25s ease;
     }
     .control-body:focus-within{
-      box-shadow:0 8px 32px 0 var(--accent-shadow);
+      box-shadow:0 20px 40px 0 var(--accent-shadow);
       transform:translateY(-2px);
-      border-color: var(--accent-500);
+      border-color: var(--frost-line);
+    }
+    .control-body--lang{
+      padding:8px 12px;
+      border-radius:14px;
+      border:1px solid var(--surface-outline);
+      background: var(--input-bg);
+      box-shadow: var(--glass-shadow);
+      transition:box-shadow .25s ease, transform .25s ease, border-color .25s ease;
+      overflow:hidden;
+      min-height:0;
+    }
+    .control-body--lang:focus-within{
+      box-shadow:0 18px 38px 0 var(--accent-shadow);
+      transform:translateY(-2px);
+      border-color: var(--frost-line);
+    }
+    .control--lang{flex:1 1 240px;}
+    .control--lang .control-title{letter-spacing:.12em;}
+    .lang-toggle{
+      position:relative;
+      display:flex;
+      gap:6px;
+      padding:4px;
+      border-radius:999px;
+      background: rgba(255, 255, 255, 0.4);
+      border:1px solid var(--surface-outline);
+      box-shadow: inset 0 1px 0 var(--frost-line-strong);
+      width:100%;
+      align-items:stretch;
+      isolation:isolate;
+      --lang-toggle-padding:4px;
+      --slider-offset:0px;
+      --slider-width:0px;
+    }
+    [data-theme="dark"] .lang-toggle{
+      background: rgba(12, 12, 12, 0.58);
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    .lang-toggle input{
+      position:absolute;
+      opacity:0;
+      pointer-events:none;
+    }
+    .lang-toggle__option{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px 16px;
+      border-radius:999px;
+      font-size:12px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--muted);
+      font-weight:500;
+      cursor:pointer;
+      transition:color .25s ease;
+      overflow:hidden;
+      flex:1 1 0;
+      min-width:0;
+      z-index:1;
+    }
+    .lang-toggle__option::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      background:var(--button-hover);
+      opacity:0;
+      transition:opacity .25s ease;
+      z-index:-1;
+    }
+    .lang-toggle__option:hover::before{
+      opacity:.35;
+    }
+    .lang-toggle__option::after{
+      content:'';
+      position:absolute;
+      inset:-2px;
+      border-radius:inherit;
+      border:2px solid transparent;
+      transition:border-color .25s ease;
+      pointer-events:none;
+    }
+    .lang-toggle input:checked + .lang-toggle__option{
+      color:var(--active-text);
+    }
+    .lang-toggle input:focus-visible + .lang-toggle__option::after{
+      border-color:rgba(16, 18, 22, 0.3);
+    }
+    [data-theme="dark"] .lang-toggle input:focus-visible + .lang-toggle__option::after{
+      border-color:rgba(255, 255, 255, 0.32);
+    }
+    .lang-toggle__slider{
+      position:absolute;
+      top:var(--lang-toggle-padding, 4px);
+      left:calc(var(--lang-toggle-padding, 4px) + var(--slider-offset, 0px));
+      width:var(--slider-width, 0px);
+      height:calc(100% - (var(--lang-toggle-padding, 4px) * 2));
+      border-radius:999px;
+      background:var(--active-bg);
+      box-shadow:0 8px 20px rgba(16, 18, 22, 0.12);
+      transition:left .35s cubic-bezier(.4,0,.2,1), width .35s cubic-bezier(.4,0,.2,1), box-shadow .35s cubic-bezier(.4,0,.2,1);
+      pointer-events:none;
+      z-index:0;
+    }
+    [data-theme="dark"] .lang-toggle__slider{
+      background:rgba(245, 245, 245, 0.12);
+      box-shadow:0 14px 28px rgba(0,0,0,0.58);
     }
     .control-select{appearance:none; border:none; background:transparent; color:var(--ink); width:100%; font-size:13px; font-weight:500; outline:none}
     .control-value{font-size:11px; color:var(--muted); letter-spacing:.02em; min-width:48px; text-align:right; margin-left:auto}
@@ -239,7 +389,7 @@
       -webkit-backdrop-filter: blur(5px);
       position:relative;
       transition:background-color .25s ease;
-      border: 1px solid var(--border);
+      border: 1px solid var(--surface-outline);
     }
     .toggle-slider::after{
       content:'';
@@ -254,17 +404,52 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
   .toggle input:checked + .toggle-slider{
-    background:var(--accent-500);
+    background:var(--ink);
     box-shadow: 0 4px 16px var(--accent-shadow);
   }
   .toggle input:checked + .toggle-slider::after{
     transform:translateX(16px);
-    background:var(--toggle-knob);
+    background:var(--white);
     box-shadow:0 2px 10px var(--accent-shadow);
   }
-    .toggle-label{font-size:12px; color:#374151; font-weight:500; transition:color .2s ease}
-  .toggle input:checked + .toggle-slider + .toggle-label{color:var(--accent-500)}
-    .control-body--segment{padding:6px; gap:6px; justify-content:flex-start}
+  [data-theme="dark"] .toggle input:checked + .toggle-slider{
+    background:rgba(245, 245, 245, 0.35);
+  }
+  [data-theme="dark"] .toggle input:checked + .toggle-slider::after{
+    background:var(--toggle-knob);
+  }
+    .toggle-label{font-size:12px; color:var(--muted); font-weight:500; transition:color .2s ease}
+  .toggle input:checked + .toggle-slider + .toggle-label{color:var(--active-text)}
+    .control-body--segment{
+      position:relative;
+      padding:6px;
+      gap:6px;
+      justify-content:flex-start;
+      isolation:isolate;
+      --segment-padding:6px;
+      --segment-slider-x:0px;
+      --segment-slider-y:0px;
+      --segment-slider-width:0px;
+      --segment-slider-height:0px;
+    }
+    .control-body--segment::before{
+      content:'';
+      position:absolute;
+      top:calc(var(--segment-padding, 6px) + var(--segment-slider-y, 0px));
+      left:calc(var(--segment-padding, 6px) + var(--segment-slider-x, 0px));
+      width:var(--segment-slider-width, 0px);
+      height:var(--segment-slider-height, 0px);
+      border-radius:10px;
+      background:var(--active-bg);
+      box-shadow:0 12px 28px var(--accent-shadow);
+      transition:top .35s cubic-bezier(.4,0,.2,1), left .35s cubic-bezier(.4,0,.2,1), width .35s cubic-bezier(.4,0,.2,1), height .35s cubic-bezier(.4,0,.2,1), box-shadow .35s cubic-bezier(.4,0,.2,1);
+      pointer-events:none;
+      z-index:0;
+    }
+    [data-theme="dark"] .control-body--segment::before{
+      background:rgba(245, 245, 245, 0.12);
+      box-shadow:0 18px 36px rgba(0,0,0,0.72);
+    }
     .segment{flex:1; position:relative}
     .segment input{position:absolute; opacity:0; inset:0; cursor:pointer}
     .segment span{
@@ -278,8 +463,10 @@
       background: var(--button-bg);
       backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
-      border:1px solid var(--border);
+      border:1px solid var(--surface-outline);
       transition:all .25s ease, color .2s ease;
+      position:relative;
+      z-index:1;
     }
     .segment span:hover{
       background: var(--button-hover);
@@ -288,10 +475,10 @@
     }
   .segment input:focus-visible + span{box-shadow:0 0 0 3px var(--accent-shadow); outline:none}
   .segment input:checked + span{
-    background:var(--accent-500);
-    color:var(--white);
+    background:var(--active-bg);
+    color:var(--active-text);
     box-shadow:0 8px 28px var(--accent-shadow);
-    border-color:var(--accent-500);
+    border-color:var(--surface-outline);
   }
     .controls--mic{gap:12px; flex-wrap:wrap}
     .controls--mic button{min-width:140px; justify-content:center}
@@ -307,7 +494,7 @@
       background: var(--input-bg);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      border:1px solid var(--border);
+      border:1px solid var(--surface-outline);
       border-radius:15px;
       padding:18px;
       overflow:auto;
@@ -335,7 +522,7 @@
 
     .hint{font-size:12px; color:var(--muted); margin-top:8px}
     .kbd{
-      border:1px solid var(--border);
+      border:1px solid var(--surface-outline);
       padding:.1em .4em;
       border-radius:6px;
       background: var(--button-bg);
@@ -350,11 +537,11 @@
     .card{transition:transform .25s ease, box-shadow .25s ease}
     .card:hover{
       transform:translateY(-6px);
-      box-shadow:0 20px 60px 0 rgba(31, 38, 135, 0.5);
+      box-shadow:0 24px 72px 0 rgba(16, 18, 22, 0.16);
     }
     .reader{transition:box-shadow .25s ease, transform .25s ease}
     .reader:focus-within, .reader:hover{
-      box-shadow:0 12px 40px 0 var(--accent-shadow);
+      box-shadow:0 24px 48px 0 var(--accent-shadow);
       transform: translateY(-2px);
     }
 
@@ -412,7 +599,13 @@
       .control-body { font-size: 12px; }
       .control-body--segment { flex-direction: column; gap: 4px; }
       .segment { width: 100%; }
-      .segment span { padding: 6px 12px; }
+    .segment span { padding: 6px 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .lang-toggle__slider,
+      .control-body--segment::before {
+        transition: none;
+      }
     }
   </style>
 </head>
@@ -421,7 +614,6 @@
     <header>
       <div>
         <h1>音声認識カラオケ・Glassmorphic版</h1>
-        <div class="sub">Web Speech API（SpeechRecognition）のみで単語ハイライト。読み上げ機能はありません。</div>
       </div>
       <button class="theme-toggle" id="themeToggle">
         <span class="theme-toggle-icon" id="themeIcon">🌙</span>
@@ -448,14 +640,18 @@
         <div class="head">
           <h2>音声認識 & ハイライト</h2>
           <div class="controls controls--options">
-            <label class="control">
+            <label class="control control--lang">
               <span class="control-title">Lang</span>
-              <div class="control-body">
-                <select id="recLang" class="control-select">
-                  <option value="en-US">en-US</option>
-                  <option value="en-GB">en-GB</option>
-                  <option value="ja-JP">ja-JP</option>
-                </select>
+              <div class="control-body control-body--lang" role="presentation">
+                <div class="lang-toggle" role="radiogroup" aria-label="Recognition language">
+                  <span class="lang-toggle__slider" aria-hidden="true"></span>
+                  <input type="radio" id="lang-en-us" name="recLang" value="en-US" checked>
+                  <label class="lang-toggle__option" for="lang-en-us">EN-US</label>
+                  <input type="radio" id="lang-en-gb" name="recLang" value="en-GB">
+                  <label class="lang-toggle__option" for="lang-en-gb">EN-GB</label>
+                  <input type="radio" id="lang-ja-jp" name="recLang" value="ja-JP">
+                  <label class="lang-toggle__option" for="lang-ja-jp">JA-JP</label>
+                </div>
               </div>
             </label>
             <label class="control">
@@ -520,7 +716,38 @@
   const reader = document.getElementById('reader');
   const loadSample = document.getElementById('loadSample');
   const resetHL = document.getElementById('resetHL');
-  const recLang = document.getElementById('recLang');
+  const recLangRadios = Array.from(document.querySelectorAll('input[name="recLang"]'));
+  const langToggleEl = document.querySelector('.lang-toggle');
+  const langSliderEl = langToggleEl ? langToggleEl.querySelector('.lang-toggle__slider') : null;
+  const updateLangSlider = () => {
+    if (!langToggleEl || !langSliderEl) return;
+    const activeInput = langToggleEl.querySelector('input[type="radio"]:checked');
+    if (!activeInput) return;
+    const activeLabel = langToggleEl.querySelector(`label[for="${activeInput.id}"]`);
+    if (!activeLabel) return;
+    const langRect = langToggleEl.getBoundingClientRect();
+    const labelRect = activeLabel.getBoundingClientRect();
+    if (!labelRect.width) return;
+    const styles = getComputedStyle(langToggleEl);
+    const paddingLeft = parseFloat(styles.paddingLeft) || 0;
+    const borderLeft = parseFloat(styles.borderLeftWidth) || 0;
+    const offset = labelRect.left - langRect.left - borderLeft - paddingLeft;
+    langToggleEl.style.setProperty('--slider-offset', `${offset}px`);
+    langToggleEl.style.setProperty('--slider-width', `${labelRect.width}px`);
+  };
+  if (langToggleEl && langSliderEl) {
+    const scheduleLangSlider = () => requestAnimationFrame(updateLangSlider);
+    scheduleLangSlider();
+    recLangRadios.forEach(input => {
+      input.addEventListener('change', scheduleLangSlider);
+      input.addEventListener('focus', scheduleLangSlider);
+    });
+    window.addEventListener('resize', scheduleLangSlider);
+  }
+  const getSelectedLang = () => {
+    const active = recLangRadios.find(input => input.checked);
+    return active ? active.value : 'en-US';
+  };
   const btnMicStart = document.getElementById('btnMicStart');
   const btnMicStop = document.getElementById('btnMicStop');
   const recStatus = document.getElementById('recStatus');
@@ -530,6 +757,36 @@
   const fontVal = document.getElementById('fontVal');
   const lineVal = document.getElementById('lineVal');
   const recModeRadios = document.querySelectorAll('input[name=\"recMode\"]');
+  const segmentContainer = document.querySelector('.control-body--segment');
+  const updateSegmentSlider = () => {
+    if (!segmentContainer) return;
+    const activeSpan = segmentContainer.querySelector('.segment input:checked + span');
+    if (!activeSpan) return;
+    const segmentRect = segmentContainer.getBoundingClientRect();
+    const activeRect = activeSpan.getBoundingClientRect();
+    if (!activeRect.width || !activeRect.height) return;
+    const styles = getComputedStyle(segmentContainer);
+    const paddingLeft = parseFloat(styles.paddingLeft) || 0;
+    const paddingTop = parseFloat(styles.paddingTop) || 0;
+    const borderLeft = parseFloat(styles.borderLeftWidth) || 0;
+    const borderTop = parseFloat(styles.borderTopWidth) || 0;
+    const offsetX = activeRect.left - segmentRect.left - borderLeft - paddingLeft;
+    const offsetY = activeRect.top - segmentRect.top - borderTop - paddingTop;
+    segmentContainer.style.setProperty('--segment-slider-x', `${offsetX}px`);
+    segmentContainer.style.setProperty('--segment-slider-y', `${offsetY}px`);
+    segmentContainer.style.setProperty('--segment-slider-width', `${activeRect.width}px`);
+    segmentContainer.style.setProperty('--segment-slider-height', `${activeRect.height}px`);
+  };
+  if (segmentContainer) {
+    const scheduleSegmentSlider = () => requestAnimationFrame(updateSegmentSlider);
+    scheduleSegmentSlider();
+    recModeRadios.forEach(radio => {
+      radio.addEventListener('change', scheduleSegmentSlider);
+      radio.addEventListener('focus', scheduleSegmentSlider);
+    });
+    window.addEventListener('resize', scheduleSegmentSlider);
+  }
+
 
   // ====== 音声認識（読み上げなし） ======
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -815,7 +1072,7 @@
     recognitionSession = {resume, fromRestart};
 
     ensureRecognizer();
-    recognizer.lang = recLang.value;
+    recognizer.lang = getSelectedLang();
 
     try{
       recognizer.start();
@@ -1037,3 +1294,4 @@
   </script>
 </body>
 </html>
+
