@@ -973,12 +973,17 @@
           if(wordScore < 0){ score = -100; break; }
           score += wordScore;
         }
-        if(score > bestScore){
-          bestScore = score;
-          bestIdx = i + context - 1;
+        if(score <= -100) continue;
+        const candidateIdx = i + context - 1;
+        const distance = Math.max(0, candidateIdx - baseIndex);
+        const distancePenalty = distance > 0 ? (Math.log2(distance + 1) * 0.8 + distance * 0.3) : 0;
+        const finalScore = score - distancePenalty;
+        if(finalScore > bestScore){
+          bestScore = finalScore;
+          bestIdx = candidateIdx;
         }
       }
-      const minScore = context * 1.8;
+      const minScore = context * 1.6;
       if(bestIdx !== -1 && bestScore >= minScore){
         return bestIdx;
       }
@@ -1004,21 +1009,21 @@
           if(wordScore < 0){ score = -100; break; }
           score += wordScore;
         }
-        if(score > -100){
-          const distance = i - start;
-          const penalty = distance > 0 ? Math.log2(distance + 2) : 0;
-          const finalScore = score - penalty;
-          if(finalScore > bestScore){
-            bestScore = finalScore;
-            bestIdx = i + context - 1;
-          }
+        if(score <= -100) continue;
+        const candidateIdx = i + context - 1;
+        const distance = candidateIdx - baseIndex;
+        const penalty = distance > 0 ? (Math.log2(distance + 1) * 1.2 + distance * 0.4) : 0;
+        const finalScore = score - penalty;
+        if(finalScore > bestScore){
+          bestScore = finalScore;
+          bestIdx = candidateIdx;
         }
       }
-      if(bestIdx !== -1 && bestScore >= context * 1.5){
+      if(bestIdx !== -1 && bestScore >= context * 1.4){
         return bestIdx;
       }
     }
-    return bestScore >= 2 ? bestIdx : -1;
+    return bestScore >= 1.5 ? bestIdx : -1;
   }
 
   function indexFromChar(charIndex){
