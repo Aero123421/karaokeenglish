@@ -119,6 +119,57 @@
       60%{box-shadow:0 0 0 8px rgba(17,17,17,0); transform:scale(1.02)}
       100%{box-shadow:0 0 0 0 rgba(17,17,17,0); transform:scale(1)}
     }
+
+    /* ── Responsive Design for Mobile and Tablet ───────────────────────────── */
+    @media (max-width: 768px) {
+      .wrapper { padding: 0 12px; margin: 16px auto 24px; }
+      header { flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 16px; }
+      header h1 { font-size: 18px; }
+      header .sub { font-size: 11px; }
+      
+      .layout { gap: 14px; }
+      .card { border-radius: 10px; }
+      .card .head { flex-direction: column; align-items: stretch; padding: 12px 14px; }
+      .card .head h2 { font-size: 14px; margin-bottom: 8px; }
+      .card .head .controls { flex-direction: column; width: 100%; }
+      .card .head .controls button { width: 100%; justify-content: center; }
+      .card .body { padding: 12px 14px; gap: 12px; }
+      
+      textarea { min-height: 180px; font-size: 14px; padding: 12px; }
+      
+      .controls--options { flex-direction: column; gap: 12px; }
+      .control { flex: 1 1 auto; min-width: 100%; }
+      .control-title { font-size: 10px; }
+      .control-body { min-height: 40px; padding: 6px 10px; }
+      .control-select { font-size: 12px; }
+      
+      .controls--mic { flex-direction: column; gap: 10px; }
+      .controls--mic button { width: 100%; min-width: 100%; }
+      
+      .reader { min-height: 240px; font-size: 16px; padding: 14px; line-height: 1.7; }
+      .hint { font-size: 11px; }
+      footer { font-size: 11px; margin-top: 12px; }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .wrapper { max-width: 900px; padding: 0 20px; }
+      header h1 { font-size: 19px; }
+      .controls--options { gap: 14px; }
+      .control { flex: 1 1 160px; min-width: 140px; }
+      .reader { font-size: 17px; }
+    }
+
+    @media (max-width: 480px) {
+      .wrapper { padding: 0 10px; }
+      header h1 { font-size: 16px; }
+      .card .head { padding: 10px 12px; }
+      .card .body { padding: 10px 12px; }
+      .reader { min-height: 200px; font-size: 15px; padding: 12px; }
+      .control-body { font-size: 12px; }
+      .control-body--segment { flex-direction: column; gap: 4px; }
+      .segment { width: 100%; }
+      .segment span { padding: 6px 12px; }
+    }
   </style>
 </head>
 <body>
@@ -605,7 +656,9 @@
         recStatus.textContent = '高速モード: テキストがありません';
         return;
       }
-      const advance = Math.max(1, Math.min(parts.length, 3));
+      // Reduce advance speed from previous 1-3 words to 1-2 words
+      // Advance by 2 words only for longer phrases (4+ parts), otherwise advance by 1
+      const advance = parts.length >= 4 ? 2 : 1;
       let target = currentWord;
       if(target < 0) target = 0;
       else target = Math.min(target + advance, normalizedWords.length - 1);
