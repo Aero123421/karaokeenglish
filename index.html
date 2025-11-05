@@ -4,7 +4,7 @@
   <base href="/karaokeenglish/">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>音声認識カラオケ・Glassmorphic版</title>
+  <title>英語カラオケ - English Karaoke</title>
   <style>
     /* ── Neutral Glass Theme ───────────────────────────── */
     :root{
@@ -101,9 +101,9 @@
       z-index: 0;
     }
     .wrapper{max-width:1100px; margin:24px auto 40px; padding:0 16px; position: relative; z-index: 1}
-    header{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px}
-    header h1{font-size:20px; font-weight:700; margin:0; letter-spacing:.02em; text-shadow: 0 2px 10px rgba(0,0,0,0.1)}
-    header .sub{color:var(--muted); font-size:12px}
+    header{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px}
+    header h1{font-size:24px; font-weight:600; margin:0; letter-spacing:.01em; text-shadow: 0 2px 10px rgba(0,0,0,0.08)}
+    header .sub{color:var(--muted); font-size:13px; margin-top:4px}
     .theme-toggle{
       cursor: pointer;
       background: var(--button-bg);
@@ -180,14 +180,14 @@
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:8px;
-      padding:14px 18px;
+      gap:12px;
+      padding:18px 20px;
       border-bottom:1px solid var(--surface-outline);
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
     }
-    .card .head h2{font-size:15px; margin:0; color:var(--ink); letter-spacing:.01em; font-weight: 600}
-    .card .body{padding:16px 18px; display:flex; flex-direction:column; gap:14px}
-    .card--reader .body{gap:16px}
+    .card .head h2{font-size:16px; margin:0; color:var(--ink); letter-spacing:.01em; font-weight: 600}
+    .card .body{padding:20px; display:flex; flex-direction:column; gap:16px}
+    .card--reader .body{gap:18px}
 
     textarea{
       width:100%;
@@ -219,8 +219,9 @@
       cursor:pointer;
       display:inline-flex;
       align-items:center;
+      justify-content:center;
       gap:6px;
-      padding:0 16px;
+      padding:0 20px;
       appearance:none;
       border-radius:var(--control-radius);
       border:1px solid var(--surface-outline);
@@ -228,10 +229,11 @@
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       color:var(--ink);
-      height:36px;
+      height:40px;
       box-shadow: var(--glass-shadow);
       transition:transform .2s ease, box-shadow .2s ease, background-color .2s ease;
       font-weight: 500;
+      font-size:14px;
     }
     .controls button:hover{
       transform:translateY(-2px);
@@ -240,10 +242,9 @@
     }
     .controls button:active{transform:translateY(0); box-shadow:0 6px 16px var(--accent-shadow)}
     .controls button:disabled{opacity:.55; cursor:not-allowed; transform:none; box-shadow: inset 0 0 0 1px var(--surface-outline)}
-    .controls--options{display:flex; flex-wrap:wrap; column-gap:18px; row-gap:22px; align-items:stretch}
-    .control{flex:1 1 190px; display:flex; flex-direction:column; gap:10px; font-size:12px; color:var(--muted); min-width:160px}
-    .control--toggle{flex:1 1 100%;}
-    .control-title{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+    .controls--options{display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:center}
+    .control{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink)}
+    .control-title{font-size:12px; font-weight:500; color:var(--muted); white-space:nowrap}
     .control-body{
       display:flex;
       align-items:center;
@@ -492,8 +493,8 @@
     box-shadow:0 8px 28px var(--accent-shadow);
     border-color:var(--surface-outline);
   }
-    .controls--mic{gap:12px; flex-wrap:wrap}
-    .controls--mic button{min-width:140px; justify-content:center}
+    .controls--mic{gap:12px; flex-wrap:wrap; justify-content:center}
+    .controls--mic button{min-width:160px; justify-content:center}
 
     /* 読み上げ表示（音声認識ハイライトのみ） */
     .reader{
@@ -589,87 +590,24 @@
       }
     }
 
-    .session-meta{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-bottom:12px;
-    }
-    .session-meta__pill{
-      padding:6px 12px;
-      border-radius:var(--pill-radius);
-      border:1px solid var(--surface-outline);
-      background: var(--button-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      box-shadow: var(--glass-shadow);
-      font-size:12px;
-      letter-spacing:.06em;
-      text-transform:uppercase;
-      color:var(--muted);
-      transition:background-color .25s ease, color .25s ease, box-shadow .25s ease, transform .25s ease;
-    }
-    .session-meta__pill[data-state="speed"]{
-      color:var(--active-text);
-      background:var(--active-bg);
-      box-shadow:0 12px 26px var(--accent-shadow);
-    }
-    .session-meta__pill[data-state="on"]{
-      color:var(--match-text);
-      background:var(--match-bg);
-    }
     .session-status{
-      display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
       gap:12px;
-      margin-bottom:14px;
-    }
-    .session-status__item{
-      padding:12px 14px;
+      margin-bottom:16px;
+      padding:12px 16px;
       border-radius:var(--control-radius);
       border:1px solid var(--surface-outline);
       background: var(--input-bg);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       box-shadow: var(--glass-shadow);
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      min-height:74px;
     }
-    .session-status__item--progress{gap:10px;}
-    .session-status__label{
-      font-size:11px;
-      letter-spacing:.12em;
-      color:var(--muted);
-      text-transform:uppercase;
-    }
-    .session-status__value{
-      font-size:18px;
-      font-weight:600;
+    .session-status__text{
+      font-size:14px;
       color:var(--ink);
-    }
-    .session-progress{
-      position:relative;
-      width:100%;
-      height:8px;
-      border-radius:var(--pill-radius);
-      background:rgba(16, 18, 22, 0.08);
-      overflow:hidden;
-    }
-    [data-theme="dark"] .session-progress{
-      background:rgba(245, 245, 245, 0.18);
-    }
-    .session-progress__bar{
-      position:absolute;
-      inset:0;
-      width:0%;
-      background:linear-gradient(90deg, rgba(56, 176, 96, 0.82), rgba(56, 176, 96, 0.32));
-      transition:width .3s cubic-bezier(.4,0,.2,1);
-      border-radius:inherit;
-    }
-    [data-theme="dark"] .session-progress__bar{
-      background:linear-gradient(90deg, rgba(56, 176, 96, 0.9), rgba(56, 176, 96, 0.45));
+      font-weight:500;
     }
     .hint{font-size:12px; color:var(--muted); margin-top:8px}
     .kbd{
@@ -698,31 +636,28 @@
 
     /* ── Responsive Design for Mobile and Tablet ───────────────────────────── */
     @media (max-width: 768px) {
-      .wrapper { padding: 0 12px; margin: 16px auto 24px; }
-      header { flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 16px; }
-      header h1 { font-size: 18px; }
-      header .sub { font-size: 11px; }
+      .wrapper { padding: 0 16px; margin: 20px auto 32px; }
+      header { flex-direction: row; align-items: center; gap: 12px; margin-bottom: 20px; }
+      header h1 { font-size: 20px; }
+      header .sub { font-size: 12px; }
       
-      .layout { gap: 14px; }
-      .card { border-radius: 10px; }
-      .card .head { flex-direction: column; align-items: stretch; padding: 12px 14px; }
-      .card .head h2 { font-size: 14px; margin-bottom: 8px; }
-      .card .head .controls { flex-direction: column; width: 100%; }
+      .layout { gap: 16px; }
+      .card { border-radius: 16px; }
+      .card .head { flex-direction: column; align-items: stretch; padding: 16px; gap: 12px; }
+      .card .head h2 { font-size: 16px; }
+      .card .head .controls { flex-direction: column; width: 100%; align-items:stretch; }
       .card .head .controls button { width: 100%; justify-content: center; }
-      .card .body { padding: 12px 14px; gap: 12px; }
+      .card .body { padding: 16px; gap: 16px; }
       
-      textarea { min-height: 180px; font-size: 14px; padding: 12px; }
+      textarea { min-height: 200px; font-size: 15px; padding: 14px; }
       
-      .controls--options { flex-direction: column; gap: 12px; }
-      .control { flex: 1 1 auto; min-width: 100%; }
-      .control-title { font-size: 10px; }
-      .control-body { min-height: 40px; padding: 6px 10px; }
+      .controls--options { flex-direction: column; gap: 12px; align-items:stretch; }
+      .control { flex: 1 1 auto; width: 100%; justify-content:space-between; }
+      .control-title { font-size: 13px; }
+      .control-body { min-height: 44px; padding: 8px 12px; }
 
-      .session-meta { gap: 6px; }
-      .session-meta__pill { flex: 1 1 120px; text-align: center; }
-      .session-status { grid-template-columns: 1fr; }
-      .session-status__item { min-height: auto; }
-      .session-status__value { font-size: 16px; }
+      .session-status { padding: 14px 16px; }
+      .session-status__text { font-size: 13px; }
 
       .control-body--segment,
       .control-body--toggle {
@@ -737,34 +672,32 @@
         box-shadow: 0 18px 36px var(--accent-shadow);
       }
       
-      .controls--mic { flex-direction: column; gap: 10px; }
+      .controls--mic { flex-direction: column; gap: 12px; }
       .controls--mic button { width: 100%; min-width: 100%; }
       
-      .reader { min-height: 240px; font-size: 16px; padding: 14px; line-height: 1.7; }
-      .hint { font-size: 11px; }
-      footer { font-size: 11px; margin-top: 12px; }
+      .reader { min-height: 280px; font-size: 16px; padding: 16px; line-height: 1.75; }
+      .hint { font-size: 12px; }
+      footer { font-size: 11px; margin-top: 16px; }
     }
 
     @media (min-width: 769px) and (max-width: 1024px) {
-      .wrapper { max-width: 900px; padding: 0 20px; }
-      header h1 { font-size: 19px; }
-      .controls--options { gap: 14px; }
-      .control { flex: 1 1 160px; min-width: 140px; }
-      .reader { font-size: 17px; }
+      .wrapper { max-width: 900px; padding: 0 24px; }
+      header h1 { font-size: 22px; }
+      .controls--options { gap: 12px; }
+      .reader { font-size: 16px; }
     }
 
     @media (max-width: 480px) {
-      .wrapper { padding: 0 10px; }
-      header h1 { font-size: 16px; }
-      .card .head { padding: 10px 12px; }
-      .card .body { padding: 10px 12px; }
-      .reader { min-height: 200px; font-size: 15px; padding: 12px; }
-      .control-body { font-size: 12px; }
-      .control-body--segment { flex-direction: column; gap: 4px; }
+      .wrapper { padding: 0 12px; }
+      header h1 { font-size: 18px; }
+      .card .head { padding: 14px; }
+      .card .body { padding: 14px; }
+      .reader { min-height: 240px; font-size: 15px; padding: 14px; }
+      .control-body { font-size: 13px; }
+      .control-body--segment { flex-direction: column; gap: 6px; }
       .segment { width: 100%; }
-      .session-meta__pill { flex: 1 1 100%; }
-      .session-status__value { font-size: 15px; }
-    .segment span { padding: 6px 12px; }
+      .segment span { padding: 8px 14px; }
+      .session-status__text { font-size: 12px; }
     }
     @media (prefers-reduced-motion: reduce) {
       .lang-toggle__slider,
@@ -778,7 +711,8 @@
   <div class="wrapper">
     <header>
       <div>
-        <h1>音声認識カラオケ・Glassmorphic版</h1>
+        <h1>🎤 英語カラオケ</h1>
+        <div class="sub">音声認識で英語学習</div>
       </div>
       <button class="theme-toggle" id="themeToggle">
         <span class="theme-toggle-icon" id="themeIcon">🌙</span>
@@ -803,10 +737,10 @@
 
       <section class="card card--reader">
         <div class="head">
-          <h2>音声認識 & ハイライト</h2>
+          <h2>音声認識</h2>
           <div class="controls controls--options">
-            <label class="control control--lang">
-              <span class="control-title">Lang</span>
+            <label class="control">
+              <span class="control-title">言語:</span>
               <div class="control-body control-body--lang" role="presentation">
                 <div class="lang-toggle" role="radiogroup" aria-label="Recognition language">
                   <span class="lang-toggle__slider" aria-hidden="true"></span>
@@ -820,7 +754,7 @@
               </div>
             </label>
             <label class="control">
-              <span class="control-title">Mode</span>
+              <span class="control-title">モード:</span>
               <div class="control-body control-body--segment">
                 <label class="segment">
                   <input type="radio" name="recMode" value="precise" checked>
@@ -832,48 +766,25 @@
                 </label>
               </div>
             </label>
-            <div class="control control--toggle">
-              <span class="control-title">Auto Scroll</span>
-              <div class="control-body control-body--toggle">
-                <label class="toggle">
-                  <input type="checkbox" id="autoScroll" checked>
-                  <span class="toggle-slider" aria-hidden="true"></span>
-                  <span class="toggle-label">自動スクロール</span>
-                </label>
-              </div>
-            </div>
+            <label class="control">
+              <span class="control-title">自動スクロール:</span>
+              <label class="toggle">
+                <input type="checkbox" id="autoScroll" checked>
+                <span class="toggle-slider" aria-hidden="true"></span>
+              </label>
+            </label>
           </div>
         </div>
         <div class="body">
-          <div class="session-meta">
-            <span class="session-meta__pill" id="modePill">モード: 正確</span>
-            <span class="session-meta__pill" id="langPill">言語: EN-US</span>
-            <span class="session-meta__pill" id="autoScrollPill">自動スクロール: ON</span>
-          </div>
           <div class="session-status">
-            <div class="session-status__item session-status__item--progress">
-              <div class="session-status__label">進行度</div>
-              <div class="session-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                <div class="session-progress__bar" id="progressBar" aria-hidden="true"></div>
-              </div>
-              <div class="session-status__value" id="progressValue" aria-live="polite" aria-atomic="true">0%</div>
-            </div>
-            <div class="session-status__item">
-              <div class="session-status__label">レスポンス</div>
-              <div class="session-status__value" id="latencyValue" aria-live="polite" aria-atomic="true">-- ms</div>
-            </div>
-            <div class="session-status__item">
-              <div class="session-status__label">安定度</div>
-              <div class="session-status__value" id="stabilityValue" aria-live="polite" aria-atomic="true">--</div>
-            </div>
+            <span class="session-status__text" id="recStatus">準備完了</span>
           </div>
           <div class="controls controls--mic">
             <button id="btnMicStart">🎤 開始 (<span class="kbd">S</span>)</button>
             <button id="btnMicStop" disabled>■ 停止</button>
           </div>
           <div id="reader" class="reader" aria-live="polite"></div>
-          <div class="hint">ステータス: <span id="recStatus">未開始</span></div>
-          <div class="hint">ショートカット: <span class="kbd">S</span> = 開始/停止, <span class="kbd">←</span>/<span class="kbd">→</span> = 1語戻る/進む</div>
+          <div class="hint">単語をタップして位置を移動 | <span class="kbd">S</span>: 開始/停止 | <span class="kbd">←</span>/<span class="kbd">→</span>: 前後移動</div>
         </div>
       </section>
     </div>
@@ -892,13 +803,7 @@
   const recLangRadios = Array.from(document.querySelectorAll('input[name="recLang"]'));
   const langToggleEl = document.querySelector('.lang-toggle');
   const langSliderEl = langToggleEl ? langToggleEl.querySelector('.lang-toggle__slider') : null;
-  const progressBar = document.getElementById('progressBar');
-  const progressValue = document.getElementById('progressValue');
-  const latencyValue = document.getElementById('latencyValue');
-  const stabilityValue = document.getElementById('stabilityValue');
-  const modePill = document.getElementById('modePill');
-  const langPill = document.getElementById('langPill');
-  const autoScrollPill = document.getElementById('autoScrollPill');
+  const recStatus = document.getElementById('recStatus');
   const updateLangSlider = () => {
     if (!langToggleEl || !langSliderEl) return;
     const activeInput = langToggleEl.querySelector('input[type="radio"]:checked');
@@ -919,10 +824,7 @@
     const scheduleLangSlider = () => requestAnimationFrame(updateLangSlider);
     scheduleLangSlider();
     recLangRadios.forEach(input => {
-      input.addEventListener('change', () => {
-        scheduleLangSlider();
-        updateSessionMeta();
-      });
+      input.addEventListener('change', scheduleLangSlider);
       input.addEventListener('focus', scheduleLangSlider);
     });
     window.addEventListener('resize', scheduleLangSlider);
@@ -1042,7 +944,6 @@
   };
   const btnMicStart = document.getElementById('btnMicStart');
   const btnMicStop = document.getElementById('btnMicStop');
-  const recStatus = document.getElementById('recStatus');
   const autoScroll = document.getElementById('autoScroll');
   const recModeRadios = document.querySelectorAll('input[name=\"recMode\"]');
   const segmentContainer = document.querySelector('.control-body--segment');
@@ -1076,63 +977,15 @@
   }
 
   function updateProgressIndicator(){
-    if(!progressBar || !progressValue){
-      return;
-    }
-    const total = normalizedWords.length;
-    if(!total){
-      progressBar.style.width = '0%';
-      const progressContainer = progressBar.parentElement;
-      if(progressContainer && progressContainer.hasAttribute('aria-valuenow')){
-        progressContainer.setAttribute('aria-valuenow', '0');
-      }
-      progressValue.textContent = '0%';
-      return;
-    }
-    const ratio = Math.max(0, currentWord + 1) / total;
-    const percent = Math.min(100, Math.max(0, Math.round(ratio * 100)));
-    progressBar.style.width = `${percent}%`;
-    const progressContainer = progressBar.parentElement;
-    if(progressContainer && progressContainer.hasAttribute('aria-valuenow')){
-      progressContainer.setAttribute('aria-valuenow', String(percent));
-    }
-    progressValue.textContent = `${percent}%`;
+    // Progress indicator removed for simplified UI
   }
 
   function updateRealtimeTelemetry(){
-    if(latencyValue){
-      if(recognitionMode === 'speed' && speedState.lastEmitTs && speedState.lastInputTs){
-        const latency = Math.max(0, Math.round(speedState.lastEmitTs - speedState.lastInputTs));
-        latencyValue.textContent = `${latency} ms`;
-      }else if(recognitionMode === 'speed'){
-        latencyValue.textContent = '-- ms';
-      }else{
-        latencyValue.textContent = '正確モード';
-      }
-    }
-    if(stabilityValue){
-      if(recognitionMode === 'speed'){
-        const stability = Math.max(0, Math.min(1, speedState.stability));
-        const percent = Math.round(stability * 100);
-        stabilityValue.textContent = percent ? `${percent}%` : '--';
-      }else{
-        stabilityValue.textContent = '---';
-      }
-    }
+    // Telemetry indicators removed for simplified UI
   }
 
   function updateSessionMeta(){
-    if(modePill){
-      modePill.textContent = `モード: ${recognitionMode === 'speed' ? '高速' : '正確'}`;
-      modePill.dataset.state = recognitionMode === 'speed' ? 'speed' : 'precise';
-    }
-    if(langPill){
-      langPill.textContent = `言語: ${getSelectedLang()}`;
-    }
-    if(autoScrollPill){
-      autoScrollPill.textContent = `自動スクロール: ${autoScroll.checked ? 'ON' : 'OFF'}`;
-      autoScrollPill.dataset.state = autoScroll.checked ? 'on' : 'off';
-    }
+    // Session meta pills removed for simplified UI
   }
 
 
@@ -2005,7 +1858,6 @@
     pendingGap = false;
     resetSpeedState();
   });
-  autoScroll.addEventListener('change', updateSessionMeta);
   recModeRadios.forEach(radio=>{
     radio.addEventListener('change', ()=>{
       if(!radio.checked) return;
@@ -2017,9 +1869,7 @@
       resetSpeedState();
       speedState.lastReliable = currentWord;
       speedState.anchor = currentWord;
-      updateSessionMeta();
-      updateRealtimeTelemetry();
-      recStatus.textContent = recognitionMode === 'speed' ? '高速モード: 音声入力を待機中' : '正確モード: 音声入力を待機中';
+      recStatus.textContent = recognitionMode === 'speed' ? '高速モード準備完了' : '正確モード準備完了';
     });
   });
 
@@ -2064,8 +1914,7 @@
   tokenize(''); render();
   reader.style.fontSize = '16px';
   reader.style.lineHeight = '1.7';
-  updateSessionMeta();
-  updateRealtimeTelemetry();
+  recStatus.textContent = '準備完了';
   </script>
 </body>
 </html>
