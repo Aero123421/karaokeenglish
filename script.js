@@ -642,7 +642,12 @@
   function resetAllWordStates(){
     wordStates = new Array(normalizedWords.length).fill('pending');
     const spans = getWordSpans();
-    spans.forEach(span=>applySpanState(span, 'pending'));
+    spans.forEach(span => {
+      // すべてのクラスを確実に削除
+      span.classList.remove('word--active', 'active', 'word--matched', 'word--missed', 'word--pending');
+      applySpanState(span, 'pending');
+    });
+    currentWord = -1;
     updateProgressIndicator();
   }
 
@@ -918,11 +923,23 @@
             outcome = 'skip';
             markSkipped = false;
           }
-          highlightTo(candidate.index, { outcome, markSkipped });
+
+          // 高速モード2段階ハイライト：
+          // 暫定結果は透明ハイライト、確定結果で色判定
+          if(!hasFinal){
+            // 暫定結果：透明ハイライト（pending状態でactive）
+            highlightTo(candidate.index, { tentative: true });
+          }else{
+            // 確定結果：色判定
+            highlightTo(candidate.index, { outcome, markSkipped });
+          }
+
           speedState.map[idx] = candidate.index;
           anchor = candidate.index;
           speedState.anchor = anchor;
-          speedState.lastReliable = Math.max(speedState.lastReliable, candidate.index);
+          if(hasFinal){
+            speedState.lastReliable = Math.max(speedState.lastReliable, candidate.index);
+          }
           speedState.missCount = 0;
           const commitTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
           speedState.lastEmitTs = commitTime;
@@ -960,9 +977,17 @@
       const alignment = alignSpeedWindow(tailParts, baseIndex, hasFinal);
       // フォールバックも前方進行のみ：現在位置より後ろのみ許可
       if(alignment && typeof alignment.bestIndex === 'number' && alignment.bestIndex > anchor){
-        highlightTo(alignment.bestIndex, { outcome:'match' });
+        // フォールバックも2段階ハイライト
+        if(!hasFinal){
+          highlightTo(alignment.bestIndex, { tentative: true });
+        }else{
+          highlightTo(alignment.bestIndex, { outcome:'match' });
+        }
+
         speedState.anchor = alignment.bestIndex;
-        speedState.lastReliable = alignment.bestIndex;
+        if(hasFinal){
+          speedState.lastReliable = alignment.bestIndex;
+        }
         speedState.map[parts.length - 1] = alignment.bestIndex;
         speedState.missCount = 0;
         const commitTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
@@ -984,7 +1009,7 @@
   }
 
   function highlightTo(index, options = {}){
-    const { manual = false, outcome = 'match', markSkipped = true, confidence = 0.7 } = options;
+    const { manual = false, outcome = 'match', markSkipped = true, confidence = 0.7, tentative = false } = options;
     const wordSpans = getWordSpans();
     if(outcome === 'rollback' && !manual){
       rewindHighlight(index);
@@ -993,7 +1018,17 @@
       return;
     }
     if(index < 0 || index >= wordSpans.length) return;
-    if(!manual){
+
+    // 距離チェック：透明ハイライトが離れすぎている場合は適用しない
+    if(tentative && currentWord >= 0){
+      const distance = index - currentWord;
+      if(distance > 5 || distance < 1){
+        // 5単語以上離れている、または後退する場合は透明ハイライトしない
+        return;
+      }
+    }
+
+    if(!manual && !tentative){
       const prev = currentWord;
       if(outcome === 'match'){
         if(markSkipped){
@@ -1014,14 +1049,19 @@
         }
       }
     }
+
     if(currentWord >= 0 && currentWord < wordSpans.length){
       wordSpans[currentWord].classList.remove('word--active', 'active');
     }
     wordSpans[index].classList.add('word--active', 'active');
-    currentWord = index;
-    lastMicIndex = index;
-    pendingGap = false;
-    unmatchedCount = 0;
+
+    if(!tentative){
+      currentWord = index;
+      lastMicIndex = index;
+      pendingGap = false;
+      unmatchedCount = 0;
+    }
+
     updateProgressIndicator();
     if(autoScrollEnabled){ wordSpans[index].scrollIntoView({block:'center', behavior:'smooth'}); }
   }
@@ -1155,7 +1195,9 @@
   function findNextWordIndex(parts, baseIndex, lookAhead){
     const maxContext = Math.min(4, parts.length);
     const backtrack = 3;
-    for(let context = maxContext; context >= 1; context--){
+
+    // 単一単語マッチングを優先（context=1から試す）
+    for(let context = 1; context <= maxContext; context++){
       const slice = parts.slice(-context);
       const start = Math.max(0, baseIndex + 1 - backtrack);
       const end = Math.min(normalizedWords.length - context + 1, baseIndex + 1 + lookAhead);
@@ -1164,11 +1206,13 @@
       let bestIdx = -1;
       for(let i=start; i<end; i++){
         let score = 0;
+        let matchedWords = 0;
         for(let j=0; j<context; j++){
           const candidate = normalizedWords[i+j];
           const wordScore = scoreWordMatch(candidate, slice[j]);
           if(wordScore < 0){ score = -100; break; }
           score += wordScore;
+          if(wordScore >= 1.5) matchedWords++;
         }
         if(score <= -100) continue;
         const candidateIdx = i + context - 1;
@@ -1180,7 +1224,9 @@
           bestIdx = candidateIdx;
         }
       }
-      const minScore = context * 1.6;
+
+      // より寛容な閾値：単語数が少ないほど低い閾値
+      const minScore = context === 1 ? 1.2 : context * 1.4;
       if(bestIdx !== -1 && bestScore >= minScore){
         return bestIdx;
       }
@@ -1194,7 +1240,9 @@
     const start = Math.max(0, baseIndex + 1);
     let bestIdx = -1;
     let bestScore = -100;
-    for(let context = maxContext; context >= 1; context--){
+
+    // 単一単語優先
+    for(let context = 1; context <= maxContext; context++){
       const slice = parts.slice(-context);
       const end = normalizedWords.length - context + 1;
       if(end <= start) continue;
@@ -1216,11 +1264,14 @@
           bestIdx = candidateIdx;
         }
       }
-      if(bestIdx !== -1 && bestScore >= context * 1.4){
+
+      // より寛容な閾値
+      const minScore = context === 1 ? 1.0 : context * 1.2;
+      if(bestIdx !== -1 && bestScore >= minScore){
         return bestIdx;
       }
     }
-    return bestScore >= 1.5 ? bestIdx : -1;
+    return bestScore >= 1.0 ? bestIdx : -1;
   }
 
   function indexFromChar(charIndex){

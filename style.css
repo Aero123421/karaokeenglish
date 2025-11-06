@@ -928,6 +928,19 @@
       box-shadow: 0 4px 16px rgba(16, 18, 22, 0.12);
       transform:translateY(-1px);
     }
+    /* 透明ハイライト（高速モード先行ハイライト） */
+    .word.word--pending.word--active{
+      color:var(--pending-text);
+      font-weight:500;
+    }
+    .word.word--pending.word--active::before{
+      background: linear-gradient(135deg,
+        rgba(200, 200, 200, 0.25) 0%,
+        rgba(180, 180, 180, 0.15) 100%);
+      border: 1px solid rgba(200, 200, 200, 0.3);
+      box-shadow: 0 2px 8px rgba(16, 18, 22, 0.06);
+      transform:translateY(-1px);
+    }
     .word.word--active.word--matched::before{
       background: linear-gradient(135deg,
         rgba(76, 175, 80, 0.4) 0%,
@@ -948,6 +961,14 @@
         rgba(255, 255, 255, 0.12) 100%);
       border: 1px solid rgba(255, 255, 255, 0.25);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+    /* ダークテーマ：透明ハイライト */
+    [data-theme="dark"] .word.word--pending.word--active::before{
+      background: linear-gradient(135deg,
+        rgba(120, 120, 120, 0.2) 0%,
+        rgba(100, 100, 100, 0.1) 100%);
+      border: 1px solid rgba(120, 120, 120, 0.25);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
     [data-theme="dark"] .word.word--active.word--matched::before{
       background: linear-gradient(135deg,
