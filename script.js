@@ -853,7 +853,8 @@
     }
 
     if(bestIndex === -1) return null;
-    const qualityThreshold = hasFinal ? 0.8 : 1.05;
+    // 閾値を緩和：認識とハイライトの不一致を減らす
+    const qualityThreshold = hasFinal ? 0.7 : 0.9;
     if(bestQuality < qualityThreshold) return null;
     if(!hasFinal && anchor >= 0 && bestIndex <= anchor) return null;
     return { index: bestIndex, score: bestScore, quality: bestQuality };
@@ -880,24 +881,9 @@
     let prefix = 0;
     while(prefix < maxPrefix && prevHistory[prefix] === parts[prefix]) prefix++;
 
-    // 巻き戻しを最小化：確定結果でかつ大幅な不一致の場合のみ
-    // 暫定結果では巻き戻しを行わない（前方進行のみ）
-    const shouldRollback = hasFinal && prefix < prevHistory.length && prefix < prevHistory.length * 0.3;
-
-    if(shouldRollback){
-      // 確定結果で30%以下しか一致しない場合のみ巻き戻し
-      const rollbackIndex = prefix > 0 ? prevMap[prefix - 1] : -1;
-      highlightTo(rollbackIndex, { outcome:'rollback' });
-      speedState.anchor = rollbackIndex;
-      speedState.lastReliable = rollbackIndex;
-      speedState.missCount = 0;
-      speedState.map = prevMap.slice(0, prefix);
-      speedState.history = prevHistory.slice(0, prefix);
-    }else{
-      // 巻き戻しせずに前方進行を継続
-      speedState.map = prevMap.slice(0, prefix);
-      speedState.history = prevHistory.slice(0, prefix);
-    }
+    // 高速モードでは巻き戻しを完全に無効化（前方進行のみ）
+    speedState.map = prevMap.slice(0, prefix);
+    speedState.history = prevHistory.slice(0, prefix);
 
     let anchor = speedState.anchor;
     if(typeof anchor !== 'number' || anchor < -1){
@@ -922,8 +908,9 @@
       if(candidate){
         // 前方進行のみを許可：現在位置より後ろのみ
         if(candidate.index > anchor || (anchor === -1 && candidate.index >= 0)){
-          const strongThreshold = hasFinal ? 1.05 : 1.35;
-          const softThreshold = hasFinal ? 0.85 : 1.1;
+          // 閾値を緩和：認識とハイライトの不一致を減らす
+          const strongThreshold = hasFinal ? 0.9 : 1.2;  // 1.05→0.9, 1.35→1.2
+          const softThreshold = hasFinal ? 0.7 : 0.9;    // 0.85→0.7, 1.1→0.9
           let outcome = 'match';
           let markSkipped = candidate.quality >= strongThreshold;
           if(candidate.quality < softThreshold){
@@ -1235,14 +1222,16 @@
 
     if(dist === 1) return 2;
     if(dist === 2 && minLen > 4) return 1.5;
-    if(dist <= Math.ceil(minLen / 2) && minLen >= 6) return 1;
+    if(dist === 2 && minLen > 3) return 1.2;  // 短い単語でも距離2を許容
+    if(dist <= Math.ceil(minLen / 2) && minLen >= 5) return 1;  // 6→5に緩和
 
-    // Jaro-Winkler（補助判定・慎重な閾値）
+    // Jaro-Winkler（補助判定・閾値を緩和）
     if(maxLen >= 4){
       const similarity = jaroWinkler(a, b);
-      // 非常に保守的な閾値：誤マッチを防ぐ
-      if(similarity >= 0.9) return 1.2;   // 90%以上の高い類似度のみ
-      if(similarity >= 0.85) return 0.8;  // 85%以上で弱い一致
+      // 閾値を緩和：認識とハイライトの不一致を減らす
+      if(similarity >= 0.8) return 1.2;   // 80%以上（0.9から緩和）
+      if(similarity >= 0.75) return 0.9;  // 75%以上（0.85から緩和）
+      if(similarity >= 0.7) return 0.6;   // 70%以上で微弱一致
     }
 
     return -100;
@@ -1281,8 +1270,8 @@
         }
       }
 
-      // より寛容な閾値：単語数が少ないほど低い閾値
-      const minScore = context === 1 ? 1.2 : context * 1.4;
+      // より寛容な閾値：単語数が少ないほど低い閾値（さらに緩和）
+      const minScore = context === 1 ? 1.0 : context * 1.2;  // 1.2→1.0, 1.4→1.2
       if(bestIdx !== -1 && bestScore >= minScore){
         return bestIdx;
       }
@@ -1321,13 +1310,13 @@
         }
       }
 
-      // より寛容な閾値
-      const minScore = context === 1 ? 1.0 : context * 1.2;
+      // より寛容な閾値（さらに緩和）
+      const minScore = context === 1 ? 0.8 : context * 1.0;  // 1.0→0.8, 1.2→1.0
       if(bestIdx !== -1 && bestScore >= minScore){
         return bestIdx;
       }
     }
-    return bestScore >= 1.0 ? bestIdx : -1;
+    return bestScore >= 0.8 ? bestIdx : -1;  // 1.0→0.8
   }
 
   function indexFromChar(charIndex){
