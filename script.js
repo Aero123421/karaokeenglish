@@ -27,6 +27,551 @@
   const langToggleEl = document.querySelector('.lang-toggle');
   const langSliderEl = langToggleEl?.querySelector('.lang-toggle__slider');
   const recStatus = document.getElementById('recStatus');
+  const lipToggleButton = document.getElementById('btnLipToggle');
+  const lipVideoEl = document.getElementById('lipVideo');
+  const lipCanvasEl = document.getElementById('lipCanvas');
+  const lipStatusEl = document.getElementById('lipStatus');
+  const lipActivityFillEl = document.getElementById('lipActivityFill');
+  const lipPreviewEl = document.querySelector('.lip-sync__preview');
+
+  const lipSyncState = {
+    ready: false,
+    active: false,
+    hasFace: false,
+    isOpen: false,
+    activity: 0,
+    stability: 0,
+    syncScore: 0,
+    lastUpdated: 0
+  };
+  let lipConfidenceRefreshId = null;
+
+  // ====== Lightweight Highlight + Timing Helpers ======
+  class ConfidenceBasedHighlighter {
+    constructor() {
+      this.confidenceLevels = [
+        { name: 'very-low', min: 0.0, max: 0.3, opacity: 0.35, blur: 4, color: 'var(--miss-text)', shadow: 'rgba(239, 71, 111, 0.28)', backdrop: 'linear-gradient(135deg, rgba(239, 71, 111, 0.16), rgba(239, 71, 111, 0.06))', glow: 'var(--glow-error)' },
+        { name: 'low', min: 0.3, max: 0.5, opacity: 0.5, blur: 2.2, color: 'var(--miss-text)', shadow: 'rgba(239, 71, 111, 0.2)', backdrop: 'linear-gradient(135deg, rgba(239, 71, 111, 0.12), rgba(239, 71, 111, 0.04))', glow: 'var(--glow-error)' },
+        { name: 'medium', min: 0.5, max: 0.7, opacity: 0.68, blur: 1.2, color: 'var(--accent-500)', shadow: 'rgba(250, 188, 60, 0.25)', backdrop: 'linear-gradient(135deg, rgba(255, 214, 102, 0.2), rgba(255, 182, 77, 0.08))', glow: 'rgba(250, 188, 60, 0.25)' },
+        { name: 'high', min: 0.7, max: 0.9, opacity: 0.85, blur: 0.6, color: 'var(--match-text)', shadow: 'rgba(56, 176, 96, 0.26)', backdrop: 'linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(56, 142, 60, 0.16))', glow: 'var(--glow-success)' },
+        { name: 'very-high', min: 0.9, max: 1.01, opacity: 1, blur: 0.2, color: 'var(--match-text)', shadow: 'rgba(56, 176, 96, 0.32)', backdrop: 'linear-gradient(135deg, rgba(76, 175, 80, 0.38), rgba(46, 125, 50, 0.2))', glow: 'var(--glow-success)' }
+      ];
+    }
+
+    clamp(confidence) {
+      if (typeof confidence !== 'number' || Number.isNaN(confidence)) {
+        return 0;
+      }
+      return Math.min(1, Math.max(0, confidence));
+    }
+
+    getConfidenceLevel(confidence) {
+      const safe = this.clamp(confidence);
+      const level = this.confidenceLevels.find(l => safe >= l.min && safe < l.max) || this.confidenceLevels[this.confidenceLevels.length - 1];
+      return { ...level, value: safe };
+    }
+
+    applyConfidenceStyle(element, confidence, state = 'pending', isActive = false) {
+      if (!element) return;
+      const level = this.getConfidenceLevel(confidence);
+      const isMatched = state === 'matched';
+      const isMissed = state === 'missed';
+      const baseGlow = isMissed ? 'var(--glow-error)' : (isMatched ? 'var(--glow-success)' : level.glow || 'var(--glow-neutral)');
+      const baseBackdrop = isMissed
+        ? 'linear-gradient(135deg, rgba(239, 71, 111, 0.22), rgba(239, 71, 111, 0.1))'
+        : (isMatched
+          ? 'linear-gradient(135deg, rgba(76, 175, 80, 0.42), rgba(56, 142, 60, 0.22))'
+          : (level.backdrop || 'linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.08))'));
+
+      element.dataset.confidence = level.name;
+      element.dataset.confidenceValue = level.value.toFixed(2);
+      element.dataset.confidenceState = state;
+      element.dataset.active = isActive ? 'true' : 'false';
+
+      element.style.transform = 'translateZ(0)';
+      element.style.willChange = 'opacity, filter, transform';
+      element.style.setProperty('--confidence-scale', isActive ? '1.06' : '1');
+      element.style.setProperty('--confidence-opacity', isActive ? Math.min(1, level.opacity + 0.08).toString() : level.opacity.toString());
+      const blurValue = isMatched ? Math.max(0, level.blur * 0.35) : (isMissed ? Math.max(level.blur, 2.6) : level.blur);
+      element.style.setProperty('--confidence-blur', `${blurValue}px`);
+      element.style.setProperty('--confidence-color', isMissed ? 'var(--miss-text)' : (isMatched ? 'var(--match-text)' : level.color));
+      const shadowColor = isMissed ? 'rgba(239, 71, 111, 0.32)' : (isMatched ? 'rgba(56, 176, 96, 0.38)' : (level.shadow || 'rgba(16, 18, 22, 0.12)'));
+      element.style.setProperty('--confidence-shadow', shadowColor);
+      element.style.setProperty('--confidence-backdrop', baseBackdrop);
+      const inactiveGlow = isMissed ? 'rgba(239, 71, 111, 0.18)' : (isMatched ? 'rgba(56, 176, 96, 0.22)' : 'rgba(16, 18, 22, 0.08)');
+      element.style.setProperty('--confidence-glow', isActive ? baseGlow : inactiveGlow);
+    }
+  }
+
+  class ConfidenceInterpolator {
+    constructor() {
+      this.history = [];
+      this.maxHistorySize = 12;
+    }
+
+    smoothConfidence(confidence) {
+      const safe = clampConfidence(confidence, 0.5);
+      this.history.push(safe);
+      if (this.history.length > this.maxHistorySize) {
+        this.history.shift();
+      }
+      const avg = this.history.reduce((sum, value) => sum + value, 0) / this.history.length;
+      return avg;
+    }
+
+    reset() {
+      this.history.length = 0;
+    }
+  }
+
+  class LightweightTimingGenerator {
+    constructor() {
+      this.audioContext = null;
+    }
+
+    ensureContext() {
+      if (this.audioContext) return this.audioContext;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      try {
+        this.audioContext = new Ctx({ latencyHint: 'interactive' });
+      } catch (_err) {
+        this.audioContext = null;
+      }
+      return this.audioContext;
+    }
+
+    async decodeAudioData(arrayBuffer) {
+      const ctx = this.ensureContext();
+      if (!ctx) throw new Error('AudioContext is not supported in this browser.');
+      return await ctx.decodeAudioData(arrayBuffer.slice(0));
+    }
+
+    async generateTimingsFromAudio(audioBuffer, lyrics) {
+      if (!audioBuffer) throw new Error('audioBuffer is required');
+      const words = lyrics.split(/\s+/).filter(Boolean);
+      if (!words.length) return [];
+      const energyProfile = await this.extractEnergyProfile(audioBuffer);
+      const peaks = this.detectPeaks(energyProfile);
+      return this.mapPeaksToWords(peaks, words, audioBuffer.duration);
+    }
+
+    async extractEnergyProfile(audioBuffer) {
+      const channelData = audioBuffer.getChannelData(0);
+      const windowSize = 1024;
+      const hopSize = 512;
+      const profile = [];
+      for (let i = 0; i < channelData.length - windowSize; i += hopSize) {
+        let energy = 0;
+        for (let j = 0; j < windowSize; j++) {
+          const sample = channelData[i + j];
+          energy += sample * sample;
+        }
+        profile.push(Math.sqrt(energy / windowSize));
+      }
+      return profile;
+    }
+
+    detectPeaks(energyData) {
+      if (!energyData.length) return [];
+      const threshold = this.calculateAdaptiveThreshold(energyData);
+      const peaks = [];
+      for (let i = 1; i < energyData.length - 1; i++) {
+        const value = energyData[i];
+        if (value > threshold && value > energyData[i - 1] && value > energyData[i + 1]) {
+          peaks.push(i);
+        }
+      }
+      return peaks;
+    }
+
+    calculateAdaptiveThreshold(values) {
+      const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
+      const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
+      const std = Math.sqrt(variance);
+      return mean + std * 0.6;
+    }
+
+    mapPeaksToWords(peaks, words, duration) {
+      if (!words.length) return [];
+      if (!peaks.length) {
+        const avgDuration = duration / words.length;
+        return words.map((word, index) => ({
+          word,
+          start: index * avgDuration,
+          end: (index + 1) * avgDuration,
+          confidence: 0.7
+        }));
+      }
+      const timings = [];
+      const avgDistance = peaks.length > 1 ? (peaks[peaks.length - 1] - peaks[0]) / (peaks.length - 1) : peaks[0] || 0;
+      const normalizedPeaks = peaks.map(p => p / (avgDistance || 1));
+      const scale = duration / Math.max(normalizedPeaks[normalizedPeaks.length - 1] || 1, words.length);
+      words.forEach((word, index) => {
+        const start = (normalizedPeaks[index] ?? index) * scale;
+        const end = (normalizedPeaks[index + 1] ?? (index + 1)) * scale;
+        timings.push({ word, start, end, confidence: 0.7 });
+      });
+      return timings;
+    }
+  }
+
+  const LIP_OUTER_INDICES = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 308];
+  const LIP_INNER_INDICES = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415];
+
+  class MouthStateHysteresis {
+    constructor() {
+      this.openThreshold = 0.58;
+      this.closeThreshold = 0.42;
+      this.minFrames = 2;
+      this.state = 'CLOSED';
+      this.counter = 0;
+    }
+
+    update(mar) {
+      if (this.state === 'CLOSED') {
+        if (mar >= this.openThreshold) {
+          this.counter++;
+          if (this.counter >= this.minFrames) {
+            this.state = 'OPEN';
+            this.counter = 0;
+          }
+        } else {
+          this.counter = 0;
+        }
+      } else {
+        if (mar <= this.closeThreshold) {
+          this.counter++;
+          if (this.counter >= this.minFrames) {
+            this.state = 'CLOSED';
+            this.counter = 0;
+          }
+        } else {
+          this.counter = 0;
+        }
+      }
+      return this.state === 'OPEN';
+    }
+  }
+
+  class LipSyncTracker {
+    constructor({ videoEl, canvasEl, statusEl, meterFillEl, previewEl } = {}) {
+      this.videoEl = videoEl || null;
+      this.canvasEl = canvasEl || null;
+      this.statusEl = statusEl || null;
+      this.meterFillEl = meterFillEl || null;
+      this.previewEl = previewEl || null;
+      this.canvasCtx = this.canvasEl ? this.canvasEl.getContext('2d') : null;
+      this.faceMesh = null;
+      this.metricsListener = null;
+      this.running = false;
+      this.pendingFrame = false;
+      this.frameHandle = null;
+      this.stream = null;
+      this.ready = false;
+      this.hysteresis = new MouthStateHysteresis();
+      this.activity = 0;
+      this.stability = 0;
+      this.lastStatus = '';
+      this.micActive = false;
+      this.processLoop = this.processLoop.bind(this);
+      if (this.videoEl) {
+        this.videoEl.playsInline = true;
+        this.videoEl.muted = true;
+      }
+      this.updatePreview('off');
+      this.updateMeter(0);
+    }
+
+    onMetrics(callback) {
+      this.metricsListener = typeof callback === 'function' ? callback : null;
+    }
+
+    isActive() {
+      return this.running;
+    }
+
+    async ensureFaceMesh() {
+      if (this.faceMesh) return this.faceMesh;
+      if (typeof FaceMesh === 'undefined') {
+        this.setStatus('FaceMesh が読み込まれていません');
+        throw new Error('FaceMesh ライブラリが読み込まれていません');
+      }
+      this.faceMesh = new FaceMesh({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1637/${file}`
+      });
+      this.faceMesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+      this.faceMesh.onResults((results) => this.handleResults(results));
+      this.ready = true;
+      return this.faceMesh;
+    }
+
+    setMicActive(isActive) {
+      this.micActive = !!isActive;
+      if (this.previewEl) {
+        this.previewEl.dataset.mic = this.micActive ? 'on' : 'off';
+      }
+    }
+
+    async start() {
+      await this.ensureFaceMesh();
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        this.setStatus('カメラが利用できません');
+        const error = new Error('Camera not supported');
+        this.emitMetrics({ ready: this.ready, active: false, hasFace: false, isOpen: false, activity: 0, stability: this.stability, syncScore: 0, timestamp: this.now() });
+        throw error;
+      }
+      if (this.running) return true;
+      this.setStatus('カメラ初期化中…');
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        if (this.videoEl) {
+          this.videoEl.srcObject = this.stream;
+          await this.videoEl.play().catch(()=>{});
+        }
+        this.running = true;
+        this.pendingFrame = false;
+        this.updatePreview('idle');
+        this.processLoop();
+        this.emitMetrics({ ready: this.ready, active: true, hasFace: false, isOpen: false, activity: 0, stability: this.stability, syncScore: 0, timestamp: this.now() });
+        return true;
+      } catch (err) {
+        console.error('Camera start failed', err);
+        this.setStatus('カメラを開始できません: ' + err.message);
+        await this.stop(true);
+        throw err;
+      }
+    }
+
+    async stop(force = false) {
+      this.running = false;
+      if (this.frameHandle) {
+        cancelAnimationFrame(this.frameHandle);
+        this.frameHandle = null;
+      }
+      this.pendingFrame = false;
+      if (this.stream) {
+        this.stream.getTracks().forEach(track => track.stop());
+        this.stream = null;
+      }
+      if (this.videoEl) {
+        this.videoEl.srcObject = null;
+      }
+      if (force && this.faceMesh && typeof this.faceMesh.reset === 'function') {
+        this.faceMesh.reset();
+      }
+      this.activity = 0;
+      this.stability *= 0.6;
+      this.updatePreview('off');
+      this.updateMeter(0);
+      this.setStatus('停止中');
+      this.clearCanvas();
+      this.emitMetrics({ ready: this.ready, active: false, hasFace: false, isOpen: false, activity: 0, stability: this.stability, syncScore: 0, timestamp: this.now() });
+    }
+
+    processLoop() {
+      if (!this.running) return;
+      if (!this.faceMesh) {
+        this.frameHandle = requestAnimationFrame(this.processLoop);
+        return;
+      }
+      if (!this.videoEl || this.videoEl.readyState < 2) {
+        this.frameHandle = requestAnimationFrame(this.processLoop);
+        return;
+      }
+      if (this.canvasEl) {
+        const width = this.videoEl.videoWidth || 640;
+        const height = this.videoEl.videoHeight || 480;
+        if (this.canvasEl.width !== width || this.canvasEl.height !== height) {
+          this.canvasEl.width = width;
+          this.canvasEl.height = height;
+        }
+      }
+      if (this.pendingFrame) {
+        this.frameHandle = requestAnimationFrame(this.processLoop);
+        return;
+      }
+      this.pendingFrame = true;
+      this.faceMesh.send({ image: this.videoEl }).catch(err => {
+        console.error('FaceMesh processing error', err);
+        this.pendingFrame = false;
+      });
+      this.frameHandle = requestAnimationFrame(this.processLoop);
+    }
+
+    handleResults(results) {
+      this.pendingFrame = false;
+      if (!this.running) return;
+      const now = this.now();
+      const landmarks = results?.multiFaceLandmarks?.[0];
+      if (!landmarks) {
+        this.activity *= 0.85;
+        this.stability *= 0.75;
+        this.updatePreview('idle');
+        this.updateMeter(this.activity);
+        this.setStatus('顔が検出されません');
+        this.clearCanvas();
+        this.emitMetrics({ ready: this.ready, active: true, hasFace: false, isOpen: false, activity: this.activity, stability: this.stability, syncScore: 0, timestamp: now });
+        return;
+      }
+      const mar = this.calculateMAR(landmarks);
+      const isOpen = this.hysteresis.update(mar);
+      const activity = this.normalizeActivity(mar);
+      this.activity = this.activity * 0.7 + activity * 0.3;
+      this.stability = Math.min(1, this.stability * 0.82 + 0.18);
+      const syncScore = (this.activity * 0.6 + (isOpen ? 0.4 : 0)) * this.stability;
+      this.drawMouth(landmarks, isOpen, mar);
+      this.updateMeter(this.activity);
+      this.updatePreview(isOpen ? 'speaking' : 'listening');
+      this.setStatus(isOpen ? `発話中 (MAR ${mar.toFixed(2)})` : '待機中');
+      this.emitMetrics({
+        ready: this.ready,
+        active: true,
+        hasFace: true,
+        isOpen,
+        activity: this.activity,
+        stability: this.stability,
+        syncScore,
+        mar,
+        timestamp: now
+      });
+    }
+
+    calculateMAR(landmarks) {
+      const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+      const A = dist(landmarks[13], landmarks[14]);
+      const B = dist(landmarks[82], landmarks[312]);
+      const C = dist(landmarks[81], landmarks[311]);
+      const D = dist(landmarks[61], landmarks[291]);
+      if (!D) return 0;
+      return (A + B + C) / (2 * D);
+    }
+
+    normalizeActivity(mar) {
+      const open = this.hysteresis.openThreshold;
+      const closed = this.hysteresis.closeThreshold;
+      const range = Math.max(0.0001, open - closed);
+      const normalized = (mar - closed) / range;
+      return Math.max(0, Math.min(1, normalized));
+    }
+
+    drawMouth(landmarks, isOpen, mar) {
+      if (!this.canvasCtx || !this.canvasEl) return;
+      const ctx = this.canvasCtx;
+      const width = this.canvasEl.width;
+      const height = this.canvasEl.height;
+      ctx.clearRect(0, 0, width, height);
+      const outer = LIP_OUTER_INDICES.map(i => this.toCanvasPoint(landmarks[i], width, height));
+      const inner = LIP_INNER_INDICES.map(i => this.toCanvasPoint(landmarks[i], width, height));
+      ctx.save();
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = isOpen ? 'rgba(56, 176, 96, 0.88)' : 'rgba(250, 188, 60, 0.8)';
+      ctx.fillStyle = isOpen ? 'rgba(56, 176, 96, 0.18)' : 'rgba(16, 18, 22, 0.22)';
+      ctx.lineWidth = isOpen ? 3 : 2;
+      this.drawShape(ctx, outer);
+      ctx.globalCompositeOperation = 'lighter';
+      this.drawShape(ctx, inner);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.restore();
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.font = '600 18px "Noto Serif JP", serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+      ctx.shadowBlur = 12;
+      ctx.fillText(`MAR ${mar.toFixed(2)}`, width - 18, height - 18);
+      ctx.restore();
+    }
+
+    drawShape(ctx, points) {
+      if (!points.length) return;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    toCanvasPoint(landmark, width, height) {
+      return {
+        x: (1 - landmark.x) * width,
+        y: landmark.y * height
+      };
+    }
+
+    updatePreview(state) {
+      if (!this.previewEl) return;
+      this.previewEl.dataset.state = state;
+    }
+
+    updateMeter(activity) {
+      if (!this.meterFillEl) return;
+      const clamped = Math.max(0.05, Math.min(1, activity));
+      this.meterFillEl.style.transform = `scaleX(${clamped})`;
+    }
+
+    clearCanvas() {
+      if (this.canvasCtx && this.canvasEl) {
+        this.canvasCtx.clearRect(0, 0, this.canvasEl.width || 0, this.canvasEl.height || 0);
+      }
+    }
+
+    setStatus(message) {
+      if (this.statusEl && this.lastStatus !== message) {
+        this.statusEl.textContent = message;
+        this.lastStatus = message;
+      }
+    }
+
+    emitMetrics(metrics) {
+      if (this.metricsListener) {
+        this.metricsListener(metrics);
+      }
+    }
+
+    now() {
+      return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+    }
+  }
+
+  const confidenceHighlighter = new ConfidenceBasedHighlighter();
+  const confidenceInterpolator = new ConfidenceInterpolator();
+  const timingGenerator = new LightweightTimingGenerator();
+  const lipSyncTracker = new LipSyncTracker({
+    videoEl: lipVideoEl,
+    canvasEl: lipCanvasEl,
+    statusEl: lipStatusEl,
+    meterFillEl: lipActivityFillEl,
+    previewEl: lipPreviewEl
+  });
+
+  lipSyncTracker.onMetrics((metrics) => {
+    const timestamp = metrics && typeof metrics.timestamp === 'number'
+      ? metrics.timestamp
+      : ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now());
+    lipSyncState.active = metrics ? metrics.active !== false : false;
+    lipSyncState.ready = !!(metrics && metrics.ready) && lipSyncState.active;
+    lipSyncState.hasFace = !!(metrics && metrics.hasFace) && lipSyncState.active;
+    lipSyncState.isOpen = !!(metrics && metrics.isOpen) && lipSyncState.active;
+    lipSyncState.activity = lipSyncState.active ? Math.max(0, metrics.activity || 0) : 0;
+    lipSyncState.stability = lipSyncState.active ? Math.max(0, metrics.stability || 0) : 0;
+    lipSyncState.syncScore = lipSyncState.active ? Math.max(0, metrics.syncScore || 0) : 0;
+    lipSyncState.lastUpdated = timestamp;
+    if(lipToggleButton && !lipToggleButton.disabled){
+      lipToggleButton.textContent = lipSyncState.active ? 'カメラ停止' : 'カメラ開始';
+    }
+    scheduleLipConfidenceRefresh();
+  });
 
   // ====== Unified Toggle Slider System ======
   const createToggleSlider = (toggleEl, sliderEl, offsetVar, widthVar) => {
@@ -343,6 +888,7 @@
   let recognizer = null;
   let normalizedWords = [];
   let wordStates = [];
+  let wordConfidence = [];
   let lastResultKey = '';
   let unmatchedCount = 0;
   let pendingGap = false;
@@ -365,6 +911,87 @@
         .replace(/[^\p{L}\p{N}'\s]+/gu, ' ').replace(/\s+/g, ' ').trim();
     }catch(e){
       return str.toLowerCase().replace(/[^a-z0-9'\s]+/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+  }
+
+  const clampConfidence = (value, fallback = 0.5) => {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return Math.min(1, Math.max(0, fallback));
+    }
+    return Math.min(1, Math.max(0, value));
+  };
+
+  function defaultConfidenceForState(state){
+    switch(state){
+      case 'matched': return 0.9;
+      case 'missed': return 0.25;
+      default: return 0.45;
+    }
+  }
+
+  function lipConfidenceAdjustment(state){
+    if(!lipSyncState.ready || !lipSyncState.active){
+      return 0;
+    }
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const age = now - lipSyncState.lastUpdated;
+    if(age > 1600){
+      return 0;
+    }
+    const freshness = 1 - Math.min(1, age / 1600);
+    const stability = Math.max(0, Math.min(1, lipSyncState.stability)) * freshness;
+    const activity = Math.max(0, Math.min(1, lipSyncState.activity)) * freshness;
+    const syncScore = Math.max(0, Math.min(1, lipSyncState.syncScore)) * freshness;
+    switch(state){
+      case 'matched':
+        return stability * (syncScore * 0.35 + activity * 0.18);
+      case 'pending':
+        return stability * (activity * 0.28 - 0.08);
+      case 'missed':
+        return -stability * (0.16 + (1 - activity) * 0.25);
+      default:
+        return 0;
+    }
+  }
+
+  function calibrateConfidenceForState(confidence, state){
+    const safe = clampConfidence(confidence, defaultConfidenceForState(state));
+    const adjustment = lipConfidenceAdjustment(state);
+    let adjusted = clampConfidence(safe + adjustment, safe);
+    if(state === 'matched') adjusted = Math.max(adjusted, 0.65);
+    if(state === 'missed') adjusted = Math.min(adjusted, 0.42);
+    return adjusted;
+  }
+
+  function ensureWordConfidenceLength(){
+    if(wordConfidence.length !== normalizedWords.length){
+      wordConfidence = new Array(normalizedWords.length).fill(defaultConfidenceForState('pending'));
+    }
+  }
+
+  function refreshConfidenceStyles(){
+    const spans = getWordSpans();
+    ensureWordConfidenceLength();
+    spans.forEach((span, idx)=>{
+      const state = wordStates[idx] || 'pending';
+      const confidence = calibrateConfidenceForState(wordConfidence[idx], state);
+      wordConfidence[idx] = confidence;
+      confidenceHighlighter.applyConfidenceStyle(span, confidence, state, span.classList.contains('word--active'));
+    });
+  }
+
+  function scheduleLipConfidenceRefresh(){
+    if(lipConfidenceRefreshId !== null) return;
+    if(typeof requestAnimationFrame === 'function'){
+      lipConfidenceRefreshId = requestAnimationFrame(()=>{
+        lipConfidenceRefreshId = null;
+        refreshConfidenceStyles();
+      });
+    }else{
+      lipConfidenceRefreshId = setTimeout(()=>{
+        lipConfidenceRefreshId = null;
+        refreshConfidenceStyles();
+      }, 120);
     }
   }
 
@@ -392,6 +1019,7 @@
     }
     lastSourceText = text;
     wordStates = new Array(normalizedWords.length).fill('pending');
+    wordConfidence = new Array(normalizedWords.length).fill(defaultConfidenceForState('pending'));
   }
 
   function render(){
@@ -399,7 +1027,7 @@
     tokens.forEach((tok, k)=>{
       if(tok.type === 'word'){
         const span = document.createElement('span');
-        span.className = 'word';
+        span.className = 'word karaoke-word';
         span.dataset.i = wordIndexFromTokenIndex(k);
         span.textContent = tok.text;
         span.addEventListener('click', ()=>{
@@ -416,8 +1044,12 @@
     if(wordStates.length !== spans.length){
       wordStates = new Array(spans.length).fill('pending');
     }
+    ensureWordConfidenceLength();
     spans.forEach((span, idx)=>{
-      applySpanState(span, wordStates[idx] || 'pending');
+      if(typeof wordConfidence[idx] !== 'number'){
+        wordConfidence[idx] = defaultConfidenceForState(wordStates[idx] || 'pending');
+      }
+      applySpanState(span, wordStates[idx] || 'pending', idx);
     });
     currentWord = -1;
     lastMicIndex = -1;
@@ -430,21 +1062,33 @@
     return reader.querySelectorAll('.word');
   }
 
-  function applySpanState(span, state){
+  function applySpanState(span, state, index){
+    if(!span) return;
+    span.dataset.state = state;
     span.classList.toggle('word--matched', state === 'matched');
     span.classList.toggle('word--missed', state === 'missed');
     span.classList.toggle('word--pending', state === 'pending');
+    if(typeof index === 'number'){
+      const confidence = calibrateConfidenceForState(wordConfidence[index], state);
+      wordConfidence[index] = confidence;
+      confidenceHighlighter.applyConfidenceStyle(span, confidence, state, span.classList.contains('word--active'));
+    }
   }
 
-  function updateWordState(index, state, spans){
+  function updateWordState(index, state, spans, confidenceOverride){
     if(index < 0 || index >= wordStates.length) return;
     wordStates[index] = state;
     const list = spans || getWordSpans();
     const span = list[index];
-    if(span) applySpanState(span, state);
+    if(typeof confidenceOverride === 'number'){
+      wordConfidence[index] = calibrateConfidenceForState(confidenceOverride, state);
+    }else if(typeof wordConfidence[index] !== 'number'){
+      wordConfidence[index] = defaultConfidenceForState(state);
+    }
+    if(span) applySpanState(span, state, index);
   }
 
-  function updateWordStateRange(from, to, state, spans){
+  function updateWordStateRange(from, to, state, spans, confidenceOverride){
     if(!wordStates.length) return;
     const list = spans || getWordSpans();
     const start = Math.max(0, from);
@@ -452,21 +1096,25 @@
     if(end < start) return;
     for(let i=start; i<=end; i++){
       wordStates[i] = state;
+      const nextConfidence = typeof confidenceOverride === 'number' ? calibrateConfidenceForState(confidenceOverride, state) : defaultConfidenceForState(state);
+      wordConfidence[i] = nextConfidence;
       const span = list[i];
-      if(span) applySpanState(span, state);
+      if(span) applySpanState(span, state, i);
     }
   }
 
   function resetAllWordStates(){
     wordStates = new Array(normalizedWords.length).fill('pending');
+    wordConfidence = new Array(normalizedWords.length).fill(defaultConfidenceForState('pending'));
     const spans = getWordSpans();
-    spans.forEach(span=>applySpanState(span, 'pending'));
+    spans.forEach((span, idx)=>applySpanState(span, 'pending', idx));
     updateProgressIndicator();
   }
 
   function resetSpeedState(){
     speedState = { history: [], map: [], lastReliable: -1, anchor: -1, missCount: 0, stability: 0, lastInputTs: 0, lastEmitTs: 0 };
     updateRealtimeTelemetry();
+    confidenceInterpolator.reset();
   }
 
   function rewindHighlight(targetIndex){
@@ -476,19 +1124,32 @@
       if(wordStates[i] !== 'pending'){
         wordStates[i] = 'pending';
       }
+      wordConfidence[i] = defaultConfidenceForState('pending');
       const span = spans[i];
       if(span){
-        applySpanState(span, 'pending');
         span.classList.remove('word--active', 'active');
+        applySpanState(span, 'pending', i);
       }
     }
     if(currentWord >= 0 && currentWord < spans.length){
       spans[currentWord].classList.remove('word--active', 'active');
+      confidenceHighlighter.applyConfidenceStyle(
+        spans[currentWord],
+        calibrateConfidenceForState(wordConfidence[currentWord], wordStates[currentWord] || 'pending'),
+        wordStates[currentWord] || 'pending',
+        false
+      );
     }
     currentWord = clamped;
     lastMicIndex = clamped;
     if(clamped >= 0){
       spans[clamped].classList.add('word--active', 'active');
+      confidenceHighlighter.applyConfidenceStyle(
+        spans[clamped],
+        calibrateConfidenceForState(wordConfidence[clamped], wordStates[clamped] || 'pending'),
+        wordStates[clamped] || 'pending',
+        true
+      );
       if(autoScrollEnabled){
         spans[clamped].scrollIntoView({block:'center', behavior:'smooth'});
       }
@@ -664,7 +1325,7 @@
     return { index: bestIndex, score: bestScore, quality: bestQuality };
   }
 
-  function processSpeedRecognition(parts, hasFinal){
+  function processSpeedRecognition(parts, hasFinal, confidenceSeed){
     if(!normalizedWords.length) return;
     if(!parts.length){
       speedState.history = [];
@@ -678,6 +1339,8 @@
 
     const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     speedState.lastInputTs = now;
+
+    const baseConfidence = clampConfidence(typeof confidenceSeed === 'number' ? confidenceSeed : (hasFinal ? 0.78 : 0.64), hasFinal ? 0.78 : 0.62);
 
     const prevHistory = speedState.history;
     const prevMap = speedState.map;
@@ -727,7 +1390,9 @@
           outcome = 'skip';
           markSkipped = false;
         }
-        highlightTo(candidate.index, { outcome, markSkipped });
+        const qualityBoost = Math.max(0, candidate.quality - (hasFinal ? 0.7 : 1));
+        const candidateConfidence = clampConfidence(baseConfidence + qualityBoost * 0.18, baseConfidence * 0.85);
+        highlightTo(candidate.index, { outcome, markSkipped, confidence: candidateConfidence });
         speedState.map[idx] = candidate.index;
         anchor = candidate.index;
         speedState.anchor = anchor;
@@ -763,7 +1428,8 @@
       const baseIndex = Math.max(anchor, speedState.lastReliable, currentWord);
       const alignment = alignSpeedWindow(tailParts, baseIndex, hasFinal);
       if(alignment && typeof alignment.bestIndex === 'number' && alignment.bestIndex !== -1 && alignment.bestIndex >= anchor){
-        highlightTo(alignment.bestIndex, { outcome:'match' });
+        const alignmentConfidence = clampConfidence(baseConfidence + Math.max(0, alignment.scorePerToken - 0.8) * 0.12, baseConfidence);
+        highlightTo(alignment.bestIndex, { outcome:'match', confidence: alignmentConfidence });
         speedState.anchor = alignment.bestIndex;
         speedState.lastReliable = alignment.bestIndex;
         speedState.map[parts.length - 1] = alignment.bestIndex;
@@ -787,7 +1453,7 @@
   }
 
   function highlightTo(index, options = {}){
-    const { manual = false, outcome = 'match', markSkipped = true } = options;
+    const { manual = false, outcome = 'match', markSkipped = true, confidence = undefined } = options;
     const wordSpans = getWordSpans();
     if(outcome === 'rollback' && !manual){
       rewindHighlight(index);
@@ -796,6 +1462,7 @@
       return;
     }
     if(index < 0 || index >= wordSpans.length) return;
+    ensureWordConfidenceLength();
     if(!manual){
       const prev = currentWord;
       if(outcome === 'match'){
@@ -805,7 +1472,7 @@
             updateWordStateRange(start, index - 1, 'missed', wordSpans);
           }
         }
-        updateWordState(index, 'matched', wordSpans);
+        updateWordState(index, 'matched', wordSpans, confidence);
         speedState.lastReliable = Math.max(speedState.lastReliable, index);
       }else if(outcome === 'skip'){
         if(markSkipped){
@@ -815,9 +1482,18 @@
       }
     }
     if(currentWord >= 0 && currentWord < wordSpans.length){
+      const prevState = wordStates[currentWord] || 'pending';
+      const prevConfidence = calibrateConfidenceForState(wordConfidence[currentWord], prevState);
+      wordConfidence[currentWord] = prevConfidence;
       wordSpans[currentWord].classList.remove('word--active', 'active');
+      confidenceHighlighter.applyConfidenceStyle(wordSpans[currentWord], prevConfidence, prevState, false);
     }
     wordSpans[index].classList.add('word--active', 'active');
+    const activeState = wordStates[index] || 'pending';
+    const baseConfidence = typeof confidence === 'number' && !manual ? confidence : wordConfidence[index];
+    const activeConfidence = calibrateConfidenceForState(baseConfidence, activeState);
+    wordConfidence[index] = activeConfidence;
+    confidenceHighlighter.applyConfidenceStyle(wordSpans[index], activeConfidence, activeState, true);
     currentWord = index;
     lastMicIndex = index;
     pendingGap = false;
@@ -846,6 +1522,27 @@
         scheduleIdleGuard();
       }
     }, 4000);
+  }
+
+  function deriveRecognitionConfidence(results, hasFinal){
+    if(!results || typeof results.length !== 'number' || !results.length){
+      return hasFinal ? 0.82 : 0.6;
+    }
+    const list = Array.from(results);
+    for(let i=list.length - 1; i>=0; i--){
+      const res = list[i];
+      if(!res || !res[0]) continue;
+      const conf = res[0].confidence;
+      if(typeof conf === 'number' && !Number.isNaN(conf)){
+        if(res.isFinal){
+          return clampConfidence(conf, hasFinal ? 0.85 : 0.65);
+        }
+        if(i === list.length - 1){
+          return clampConfidence(conf, hasFinal ? 0.82 : 0.6);
+        }
+      }
+    }
+    return hasFinal ? 0.82 : 0.6;
   }
 
   async function primeMicPermission(){
@@ -1029,6 +1726,7 @@
   }
 
   function handleRecognizerStart(){
+    lipSyncTracker.setMicActive(true);
     recognizing = true;
     btnMicStart.disabled = true;
     btnMicStop.disabled = false;
@@ -1051,6 +1749,7 @@
   }
 
   function handleRecognizerEnd(){
+    lipSyncTracker.setMicActive(false);
     recognizing = false;
     clearIdleGuard();
     if(userStopRequested || !shouldAutoRestart){
@@ -1074,6 +1773,7 @@
   function handleRecognizerError(ev){
     console.error(ev);
     recStatus.textContent = 'エラー: ' + ev.error;
+    lipSyncTracker.setMicActive(false);
     if(ev.error === 'not-allowed' || ev.error === 'service-not-allowed'){
       shouldAutoRestart = false;
       btnMicStart.disabled = false;
@@ -1101,6 +1801,9 @@
       return;
     }
 
+    const rawConfidence = deriveRecognitionConfidence(ev.results, hasFinal);
+    const smoothedConfidence = confidenceInterpolator.smoothConfidence(rawConfidence);
+
     if(recognitionMode === 'speed'){
       if(norm === lastSpeedNorm && !hasFinal){
         recStatus.textContent = '聞き取り中: ' + transcript;
@@ -1111,7 +1814,7 @@
         recStatus.textContent = '高速モード: テキストがありません';
         return;
       }
-      processSpeedRecognition(parts, hasFinal);
+      processSpeedRecognition(parts, hasFinal, smoothedConfidence);
       recStatus.textContent = (hasFinal ? '高速認識: ' : '高速処理中: ') + transcript;
       return;
     }
@@ -1127,18 +1830,18 @@
     const lookAhead = hasFinal ? 22 : 14;
     const targetIndex = findNextWordIndex(parts, baseIndex, lookAhead);
     if(targetIndex !== -1 && (targetIndex >= currentWord || hasFinal || currentWord === -1)){
-      highlightTo(targetIndex, { outcome: 'match' });
+      highlightTo(targetIndex, { outcome: 'match', confidence: smoothedConfidence });
     }else{
       unmatchedCount++;
       const needsRecovery = hasFinal || unmatchedCount >= 2 || pendingGap;
       if(needsRecovery){
         const globalIndex = findBestGlobalMatch(parts, Math.max(currentWord, lastMicIndex));
         if(globalIndex !== -1 && (globalIndex >= currentWord || currentWord === -1)){
-          highlightTo(globalIndex, { outcome: 'match' });
+          highlightTo(globalIndex, { outcome: 'match', confidence: smoothedConfidence * 0.95 });
         }else if(hasFinal && normalizedWords.length){
           const softAdvance = Math.min((currentWord === -1 ? 0 : currentWord + 1), normalizedWords.length - 1);
           if(softAdvance > currentWord){
-            highlightTo(softAdvance, { outcome: 'skip', markSkipped:false });
+            highlightTo(softAdvance, { outcome: 'skip', markSkipped:false, confidence: smoothedConfidence * 0.6 });
           }else{
             pendingGap = true;
           }
@@ -1153,6 +1856,7 @@
     recStatus.textContent = (hasFinal ? '認識: ' : '聞き取り中: ') + transcript;
   }
   function micStop(){
+    lipSyncTracker.setMicActive(false);
     userStopRequested = true;
     shouldAutoRestart = false;
     clearRestartTimer();
@@ -1200,11 +1904,44 @@
   // ====== そのほか ======
   btnMicStart.addEventListener('click', micStart);
   btnMicStop.addEventListener('click', micStop);
+  if(lipToggleButton){
+    lipToggleButton.addEventListener('click', async ()=>{
+      if(!lipSyncTracker) return;
+      if(lipSyncTracker.isActive()){
+        lipToggleButton.disabled = true;
+        try{
+          await lipSyncTracker.stop();
+        }catch(err){
+          console.error('Failed to stop lip sync tracker', err);
+        }finally{
+          lipToggleButton.disabled = false;
+          lipToggleButton.textContent = 'カメラ開始';
+        }
+      }else{
+        lipToggleButton.disabled = true;
+        lipToggleButton.textContent = '開始中…';
+        try{
+          await lipSyncTracker.start();
+          lipToggleButton.textContent = 'カメラ停止';
+        }catch(err){
+          console.error('Failed to start lip sync tracker', err);
+          lipToggleButton.textContent = 'カメラ開始';
+        }finally{
+          lipToggleButton.disabled = false;
+          if(!lipSyncTracker.isActive()){
+            lipToggleButton.textContent = 'カメラ開始';
+          }
+        }
+      }
+    });
+  }
   resetHL.addEventListener('click', ()=>{
     const spans = getWordSpans();
-    spans.forEach(span=>{
+    spans.forEach((span, idx)=>{
       span.classList.remove('word--active', 'active');
-      applySpanState(span, 'pending');
+      wordStates[idx] = 'pending';
+      wordConfidence[idx] = defaultConfidenceForState('pending');
+      applySpanState(span, 'pending', idx);
     });
     resetAllWordStates();
     currentWord = -1;
@@ -1252,6 +1989,7 @@
       themeText.textContent = 'ダークモード';
       localStorage.setItem('theme', 'light');
     }
+    requestAnimationFrame(refreshConfidenceStyles);
   }
   
   // Load saved theme or detect system preference
@@ -1266,6 +2004,19 @@
     const currentTheme = document.documentElement.getAttribute('data-theme');
     setTheme(currentTheme === 'dark' ? 'light' : 'dark');
   });
+
+  if(typeof window !== 'undefined'){
+    window.karaokeEnglish = Object.assign({}, window.karaokeEnglish, {
+      timingGenerator,
+      refreshConfidenceStyles,
+      lipSyncTracker,
+      lipSyncState,
+      async generateTimingsFromArrayBuffer(arrayBuffer, lyrics){
+        const audioBuffer = await timingGenerator.decodeAudioData(arrayBuffer);
+        return timingGenerator.generateTimingsFromAudio(audioBuffer, lyrics);
+      }
+    });
+  }
 
   // 初期描画
   tokenize(''); render();

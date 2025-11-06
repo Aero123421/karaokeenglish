@@ -107,6 +107,23 @@
             <button id="btnMicStop" disabled>■ 停止</button>
           </div>
           <div id="reader" class="reader" aria-live="polite"></div>
+          <div class="lip-sync" id="lipSyncModule">
+            <div class="lip-sync__header">
+              <span class="lip-sync__title">口の動き認識</span>
+              <button id="btnLipToggle" class="lip-sync__toggle">カメラ開始</button>
+            </div>
+            <div class="lip-sync__preview" data-state="idle" data-mic="off">
+              <video id="lipVideo" class="lip-sync__video" autoplay playsinline muted></video>
+              <canvas id="lipCanvas" class="lip-sync__canvas"></canvas>
+              <div class="lip-sync__hud" aria-hidden="true">
+                <div class="lip-sync__status" id="lipStatus">未開始</div>
+                <div class="lip-sync__meter">
+                  <div class="lip-sync__meter-fill" id="lipActivityFill"></div>
+                </div>
+              </div>
+            </div>
+            <p class="lip-sync__note">MediaPipe FaceMesh で口の開閉を推定し、ブラウザ内でのみ処理します。</p>
+          </div>
           <div class="hint">単語をタップして位置を移動 | <span class="kbd">S</span>: 開始/停止 | <span class="kbd">←</span>/<span class="kbd">→</span>: 前後移動</div>
         </div>
       </section>
@@ -117,6 +134,9 @@
     </footer>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4.1637/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.4.1637/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1637/face_mesh.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
