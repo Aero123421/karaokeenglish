@@ -1410,3 +1410,195 @@
   reader.style.fontSize = '16px';
   reader.style.lineHeight = '1.7';
   recStatus.textContent = '準備完了';
+
+  // ══════════════════════════════════════════════════════════════════
+  // Premium Liquid Glass UI - Micro-interactions
+  // ══════════════════════════════════════════════════════════════════
+
+  // Page load animation
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.style.opacity = '0';
+    requestAnimationFrame(() => {
+      document.body.style.transition = 'opacity 0.6s ease-out';
+      document.body.style.opacity = '1';
+    });
+  });
+
+  // Add ripple effect to buttons
+  const addRippleEffect = (button) => {
+    button.addEventListener('click', function(e) {
+      const ripple = document.createElement('span');
+      const rect = this.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+
+      ripple.style.cssText = `
+        position: absolute;
+        width: ${size}px;
+        height: ${size}px;
+        left: ${x}px;
+        top: ${y}px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.6), transparent);
+        pointer-events: none;
+        transform: scale(0);
+        animation: ripple 0.6s ease-out;
+        z-index: 1000;
+      `;
+
+      this.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 600);
+    });
+  };
+
+  // Add ripple to all buttons
+  document.querySelectorAll('button').forEach(addRippleEffect);
+
+  // Add CSS animation for ripple
+  if (!document.querySelector('#ripple-animation')) {
+    const style = document.createElement('style');
+    style.id = 'ripple-animation';
+    style.textContent = `
+      @keyframes ripple {
+        to {
+          transform: scale(2);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Smooth scroll into view enhancement
+  const enhancedScrollIntoView = (element) => {
+    if (!element) return;
+    const options = {
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'nearest'
+    };
+
+    // Add spring animation class
+    element.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    element.style.transform = 'scale(1.05)';
+
+    setTimeout(() => {
+      element.style.transform = 'scale(1)';
+    }, 400);
+
+    element.scrollIntoView(options);
+  };
+
+  // Enhanced hover effects for cards
+  document.querySelectorAll('.card').forEach(card => {
+    let timeout;
+
+    card.addEventListener('mouseenter', function() {
+      clearTimeout(timeout);
+      this.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    });
+
+    card.addEventListener('mouseleave', function() {
+      timeout = setTimeout(() => {
+        this.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      }, 100);
+    });
+  });
+
+  // Parallax effect for background overlay
+  let ticking = false;
+  let lastScrollY = 0;
+
+  window.addEventListener('scroll', () => {
+    lastScrollY = window.scrollY;
+
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        const overlay = document.querySelector('body::before');
+        if (overlay) {
+          const translateY = lastScrollY * 0.3;
+          document.body.style.setProperty('--scroll-y', `${translateY}px`);
+        }
+        ticking = false;
+      });
+
+      ticking = true;
+    }
+  });
+
+  // Enhanced toggle animation with spring
+  const enhanceToggleAnimation = (toggleElement, sliderElement) => {
+    if (!toggleElement || !sliderElement) return;
+
+    const observer = new MutationObserver(() => {
+      sliderElement.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    });
+
+    observer.observe(toggleElement, {
+      attributes: true,
+      attributeFilter: ['style']
+    });
+  };
+
+  // Apply to all toggles
+  if (langSliderEl) enhanceToggleAnimation(langToggleEl, langSliderEl);
+  if (modeSliderEl) enhanceToggleAnimation(modeToggleEl, modeSliderEl);
+  if (scrollSliderEl) enhanceToggleAnimation(scrollToggleEl, scrollSliderEl);
+
+  // Intersection Observer for fade-in animations
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+
+  const fadeInObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry, index) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }, index * 100);
+        fadeInObserver.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+
+  // Apply fade-in to cards
+  document.querySelectorAll('.card').forEach(card => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    card.style.transition = 'opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    fadeInObserver.observe(card);
+  });
+
+  // Enhanced focus states with glow effect
+  const addFocusGlow = (element) => {
+    element.addEventListener('focus', function() {
+      this.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.15), 0 8px 32px rgba(59, 130, 246, 0.2)';
+    });
+
+    element.addEventListener('blur', function() {
+      this.style.boxShadow = '';
+    });
+  };
+
+  document.querySelectorAll('button, textarea, input').forEach(addFocusGlow);
+
+  // Add subtle mouse parallax to header
+  const header = document.querySelector('header');
+  if (header) {
+    document.addEventListener('mousemove', (e) => {
+      if (window.innerWidth > 768) {
+        const x = (e.clientX / window.innerWidth - 0.5) * 10;
+        const y = (e.clientY / window.innerHeight - 0.5) * 10;
+        header.style.transform = `perspective(1000px) rotateY(${x}deg) rotateX(${-y}deg)`;
+      }
+    });
+
+    document.addEventListener('mouseleave', () => {
+      header.style.transform = '';
+    });
+  }
+
+  console.log('🎨 Liquid Glass UI initialized - Premium design by Apple standards');
