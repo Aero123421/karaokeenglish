@@ -548,6 +548,7 @@
   // ====== ユーティリティ ======
   function normalizeForMatch(str){
     try{
+      // 大文字小文字を区別しない（toLowerCase）
       return str.toLowerCase().replace(/[\u2019\u2018]/g, "'")
         .replace(/[^\p{L}\p{N}'\s]+/gu, ' ').replace(/\s+/g, ' ').trim();
     }catch(e){
@@ -671,6 +672,7 @@
   function resetSpeedState(){
     speedState = { history: [], map: [], lastReliable: -1, anchor: -1, missCount: 0, stability: 0, lastInputTs: 0, lastEmitTs: 0 };
     confidenceInterpolator.reset();
+    lastVoiceDetectionIndex = -1;  // AudioContext検知をリセット
     updateRealtimeTelemetry();
   }
 
@@ -699,310 +701,6 @@
       }
     }
     updateProgressIndicator();
-  }
-
-  function alignSpeedWindow(parts, baseIndex, hasFinal){
-    if(parts.length === 0 || !normalizedWords.length) return null;
-    const anchor = baseIndex >= 0 ? baseIndex : (currentWord >= 0 ? currentWord : -1);
-    const dynamicAhead = hasFinal ? 30 : 22;
-    const windowStart = Math.max(0, (anchor >= 0 ? anchor : 0) - 6);
-    const windowEnd = Math.min(
-      normalizedWords.length - 1,
-      Math.max(anchor + 1, currentWord + 1, 0) + dynamicAhead
-    );
-    if(windowEnd < windowStart) return null;
-    const windowWords = normalizedWords.slice(windowStart, windowEnd + 1);
-    if(!windowWords.length) return null;
-
-    const rows = parts.length + 1;
-    const cols = windowWords.length + 1;
-    const NEG = -1e9;
-    const dp = Array.from({length: rows}, () => new Float32Array(cols).fill(NEG));
-    const bt = Array.from({length: rows}, () => new Array(cols));
-    const skipWordPenalty = hasFinal ? 1.2 : 0.9;
-    const skipPartPenalty = hasFinal ? 1.05 : 0.75;
-
-    dp[0][0] = 0;
-    for(let j=1; j<cols; j++){
-      dp[0][j] = dp[0][j-1] - skipWordPenalty;
-      bt[0][j] = { i:0, j:j-1, type:'skipWord' };
-    }
-    for(let i=1; i<rows; i++){
-      dp[i][0] = dp[i-1][0] - skipPartPenalty;
-      bt[i][0] = { i:i-1, j:0, type:'skipPart' };
-    }
-
-    for(let i=1; i<rows; i++){
-      const part = parts[i-1];
-      for(let j=1; j<cols; j++){
-        const word = windowWords[j-1];
-        let rawScore = scoreWordMatch(word, part);
-        if(rawScore <= -50) rawScore = -6;
-        else if(rawScore < 0) rawScore = rawScore / 4;
-        let bestScore = dp[i-1][j-1] + rawScore;
-        let bestStep = { i:i-1, j:j-1, type:'match' };
-        const skipWordScore = dp[i][j-1] - skipWordPenalty;
-        if(skipWordScore > bestScore){
-          bestScore = skipWordScore;
-          bestStep = { i:i, j:j-1, type:'skipWord' };
-        }
-        const skipPartScore = dp[i-1][j] - skipPartPenalty;
-        if(skipPartScore > bestScore){
-          bestScore = skipPartScore;
-          bestStep = { i:i-1, j:j, type:'skipPart' };
-        }
-        dp[i][j] = bestScore;
-        bt[i][j] = bestStep;
-      }
-    }
-
-    let bestCol = 0;
-    let bestScore = -Infinity;
-    const lastRow = rows - 1;
-    for(let j=1; j<cols; j++){
-      const wordIdx = windowStart + j - 1;
-      const distance = anchor >= 0 ? Math.max(0, wordIdx - anchor) : Math.max(0, wordIdx);
-      const penalty = distance > 0 ? Math.log2(distance + 1) * 0.35 : 0;
-      const score = dp[lastRow][j] - penalty;
-      if(score > bestScore){
-        bestScore = score;
-        bestCol = j;
-      }
-    }
-
-    const mapping = new Array(parts.length).fill(-1);
-    const matchedWords = [];
-    let strongMatches = 0;
-    let softMatches = 0;
-    let i = rows - 1;
-    let j = bestCol;
-    while(i > 0 || j > 0){
-      const step = bt[i][j];
-      if(!step) break;
-      if(step.type === 'match'){
-        const partIdx = i - 1;
-        const wordIdx = windowStart + j - 1;
-        const rawScore = scoreWordMatch(windowWords[j-1], parts[i-1]);
-        mapping[partIdx] = wordIdx;
-        if(rawScore >= 1){
-          matchedWords.push(wordIdx);
-          strongMatches++;
-        }else if(rawScore >= 0.5){
-          matchedWords.push(wordIdx);
-          softMatches++;
-        }
-        i = step.i;
-        j = step.j;
-      }else{
-        i = step.i;
-        j = step.j;
-      }
-    }
-
-    const uniqueMatches = Array.from(new Set(matchedWords));
-    const bestIndex = mapping.reduce((acc, val) => (typeof val === 'number' && val > acc) ? val : acc, -1);
-    const effectiveMatches = strongMatches + softMatches * 0.5;
-    const coverage = effectiveMatches / Math.max(1, parts.length);
-    const rawPathScore = dp[rows - 1][bestCol];
-    const scorePerToken = rawPathScore / Math.max(1, parts.length);
-    const unmatchedParts = parts.length - (strongMatches + softMatches);
-    return {
-      mapping,
-      matchedWords: uniqueMatches,
-      bestIndex,
-      coverage,
-      scorePerToken,
-      score: bestScore,
-      unmatchedParts
-    };
-  }
-
-  function findRealtimeCandidate(contextParts, anchor, options = {}){
-    if(!contextParts.length || !normalizedWords.length) return null;
-    const hasFinal = !!options.hasFinal;
-    const windowAhead = typeof options.windowAhead === 'number' ? options.windowAhead : 14;
-    const backtrack = typeof options.backtrack === 'number' ? options.backtrack : 2;
-    let startIndex = anchor < 0 ? 0 : Math.max(0, anchor - backtrack);
-    let endIndex = normalizedWords.length - 1;
-    if(anchor >= 0){
-      endIndex = Math.min(normalizedWords.length - 1, anchor + windowAhead);
-    }else{
-      endIndex = Math.min(normalizedWords.length - 1, windowAhead);
-    }
-    if(endIndex < startIndex) return null;
-
-    let bestIndex = -1;
-    let bestScore = -Infinity;
-    let bestQuality = 0;
-
-    for(let idx = startIndex; idx <= endIndex; idx++){
-      if(idx < contextParts.length - 1) continue;
-      const wordStart = idx - (contextParts.length - 1);
-      if(wordStart < 0) continue;
-      let score = 0;
-      let valid = true;
-      for(let j=0; j<contextParts.length; j++){
-        const tokenScore = scoreWordMatch(normalizedWords[wordStart + j], contextParts[j]);
-        if(tokenScore < 0){
-          valid = false;
-          break;
-        }
-        score += tokenScore;
-      }
-      if(!valid) continue;
-      const avgScore = score / contextParts.length;
-      const distance = anchor < 0 ? idx : Math.max(0, idx - anchor);
-      const penalty = distance > 0 ? (distance * (hasFinal ? 0.16 : 0.32) + Math.log2(distance + 1) * (hasFinal ? 0.22 : 0.4)) : 0;
-      const bonus = hasFinal ? contextParts.length * 0.12 : 0;
-      const finalScore = score - penalty + bonus;
-      if(finalScore > bestScore){
-        bestScore = finalScore;
-        bestIndex = idx;
-        bestQuality = avgScore;
-      }
-    }
-
-    if(bestIndex === -1) return null;
-    // 閾値をさらに緩和：認識とハイライトの不一致を最小化
-    const qualityThreshold = hasFinal ? 0.6 : 0.8;  // 0.7→0.6, 0.9→0.8
-    if(bestQuality < qualityThreshold) return null;
-    if(!hasFinal && anchor >= 0 && bestIndex <= anchor) return null;
-    return { index: bestIndex, score: bestScore, quality: bestQuality };
-  }
-
-  function processSpeedRecognition(parts, hasFinal){
-    if(!normalizedWords.length) return;
-    if(!parts.length){
-      speedState.history = [];
-      speedState.map = [];
-      speedState.anchor = Math.max(currentWord, speedState.lastReliable);
-      speedState.missCount = 0;
-      speedState.stability = Math.max(0, speedState.stability * 0.5);
-      updateRealtimeTelemetry();
-      return;
-    }
-
-    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    speedState.lastInputTs = now;
-
-    const prevHistory = speedState.history;
-    const prevMap = speedState.map;
-    const maxPrefix = Math.min(prevHistory.length, parts.length);
-    let prefix = 0;
-    while(prefix < maxPrefix && prevHistory[prefix] === parts[prefix]) prefix++;
-
-    // 高速モードでは巻き戻しを完全に無効化（前方進行のみ）
-    speedState.map = prevMap.slice(0, prefix);
-    speedState.history = prevHistory.slice(0, prefix);
-
-    let anchor = speedState.anchor;
-    if(typeof anchor !== 'number' || anchor < -1){
-      anchor = -1;
-    }
-    if(speedState.map.length){
-      const lastAssigned = speedState.map[speedState.map.length - 1];
-      if(typeof lastAssigned === 'number'){
-        anchor = lastAssigned;
-      }
-    }
-    if(anchor < currentWord) anchor = currentWord;
-    if(speedState.lastReliable > anchor) anchor = speedState.lastReliable;
-
-    let fallbackNeeded = false;
-    const windowAhead = hasFinal ? 26 : 14;
-
-    for(let idx = prefix; idx < parts.length; idx++){
-      const tailStart = Math.max(0, idx - 3);
-      const tail = parts.slice(tailStart, idx + 1);
-      const candidate = findRealtimeCandidate(tail, anchor, { hasFinal, windowAhead });
-      if(candidate){
-        // 前方進行のみを許可：現在位置より後ろのみ
-        if(candidate.index > anchor || (anchor === -1 && candidate.index >= 0)){
-          // 高速モード：暫定は透明ハイライトのみ、確定で色判定
-          if(!hasFinal){
-            // 暫定結果：透明ハイライト（速度優先）
-            highlightTo(candidate.index, { tentative: true });
-          }else{
-            // 確定結果：色判定（閾値をさらに緩和）
-            const strongThreshold = 0.8;  // 0.9→0.8
-            const softThreshold = 0.6;    // 0.7→0.6
-            let outcome = 'match';
-            let markSkipped = candidate.quality >= strongThreshold;
-            if(candidate.quality < softThreshold){
-              outcome = 'skip';
-              markSkipped = false;
-            }
-            highlightTo(candidate.index, { outcome, markSkipped });
-          }
-
-          speedState.map[idx] = candidate.index;
-          anchor = candidate.index;
-          speedState.anchor = anchor;
-          if(hasFinal){
-            speedState.lastReliable = Math.max(speedState.lastReliable, candidate.index);
-          }
-          speedState.missCount = 0;
-          const commitTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-          speedState.lastEmitTs = commitTime;
-          const stabilityBoost = outcome === 'match' ? (markSkipped ? 0.5 : 0.35) : 0.25;
-          speedState.stability = Math.min(1, speedState.stability * 0.55 + stabilityBoost);
-          updateRealtimeTelemetry();
-        }else{
-          // 後退するマッチングは無視（前方進行優先）
-          speedState.map[idx] = -1;
-        }
-      }else{
-        speedState.map[idx] = -1;
-        speedState.missCount = (speedState.missCount || 0) + 1;
-        speedState.stability = Math.max(0, speedState.stability * 0.6 - 0.12);
-        // 暫定結果ではフォールバックを緩く、確定結果では厳しく
-        if(speedState.missCount >= (hasFinal ? 3 : 5)){
-          fallbackNeeded = true;
-          break;
-        }
-      }
-    }
-
-    if(speedState.map.length < parts.length){
-      for(let i = speedState.map.length; i < parts.length; i++){
-        speedState.map[i] = -1;
-      }
-    }
-
-    speedState.anchor = anchor;
-
-    if(fallbackNeeded || (hasFinal && (speedState.map[parts.length - 1] ?? -1) === -1)){
-      const tailLimit = hasFinal ? 30 : 18;
-      const tailParts = parts.slice(-tailLimit);
-      const baseIndex = Math.max(anchor, speedState.lastReliable, currentWord);
-      const alignment = alignSpeedWindow(tailParts, baseIndex, hasFinal);
-      // フォールバックも前方進行のみ：現在位置より後ろのみ許可
-      if(alignment && typeof alignment.bestIndex === 'number' && alignment.bestIndex > anchor){
-        // 高速モード：暫定は透明ハイライトのみ、確定で色判定
-        if(!hasFinal){
-          highlightTo(alignment.bestIndex, { tentative: true });
-        }else{
-          highlightTo(alignment.bestIndex, { outcome:'match' });
-        }
-
-        speedState.anchor = alignment.bestIndex;
-        if(hasFinal){
-          speedState.lastReliable = alignment.bestIndex;
-        }
-        speedState.map[parts.length - 1] = alignment.bestIndex;
-        speedState.missCount = 0;
-        const commitTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-        speedState.lastEmitTs = commitTime;
-        speedState.stability = Math.min(1, speedState.stability * 0.55 + 0.45);
-        updateRealtimeTelemetry();
-      }
-    }
-
-    speedState.history = parts.slice();
-    if(speedState.map.length > parts.length){
-      speedState.map.length = parts.length;
-    }
-    updateRealtimeTelemetry();
   }
 
   function wordIndexFromTokenIndex(tokenIdx){
@@ -1124,17 +822,40 @@
   function startVoiceDetection() {
     if (voiceDetectionInterval) return;
 
-    const bufferLength = audioAnalyzer.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+    const bufferLength = audioAnalyzer.fftSize;
+    const freqData = new Uint8Array(audioAnalyzer.frequencyBinCount);
+    const timeData = new Uint8Array(bufferLength);
 
     voiceDetectionInterval = setInterval(() => {
       if (!recognizing || recognitionMode !== 'speed') return;
 
-      audioAnalyzer.getByteFrequencyData(dataArray);
-      const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+      // 周波数データ（エネルギー検出）
+      audioAnalyzer.getByteFrequencyData(freqData);
 
-      // Voice detected (threshold tuned for typical speech)
-      if (average > 30) {
+      // 時間ドメインデータ（ゼロクロッシング検出）
+      audioAnalyzer.getByteTimeDomainData(timeData);
+
+      // RMS（Root Mean Square）計算：音声エネルギー
+      let sum = 0;
+      for(let i = 0; i < freqData.length; i++){
+        sum += freqData[i] * freqData[i];
+      }
+      const rms = Math.sqrt(sum / freqData.length);
+
+      // ゼロクロッシングレート計算：音声の変化速度
+      let zeroCrossings = 0;
+      for(let i = 1; i < timeData.length; i++){
+        if((timeData[i] >= 128 && timeData[i-1] < 128) ||
+           (timeData[i] < 128 && timeData[i-1] >= 128)){
+          zeroCrossings++;
+        }
+      }
+      const zcr = zeroCrossings / timeData.length;
+
+      // 音声検知：RMSが十分高く、ゼロクロッシングが適度（無音や雑音を除外）
+      const isVoice = rms > 25 && zcr > 0.02 && zcr < 0.5;
+
+      if (isVoice) {
         const nextIndex = currentWord + 1;
         if (nextIndex < normalizedWords.length && nextIndex !== lastVoiceDetectionIndex) {
           // AudioContext detection → immediately advance transparent highlight to NEXT word
@@ -1499,6 +1220,9 @@
     }
 
     if(recognitionMode === 'speed'){
+      // 高速モード：正確モードと同じアルゴリズムを使用（高速！）
+      // 暫定結果 → 透明ハイライトのみ（即座に反応）
+      // 確定結果 → 色判定
       if(norm === lastSpeedNorm && !hasFinal){
         recStatus.textContent = '聞き取り中: ' + transcript;
         return;
@@ -1508,7 +1232,43 @@
         recStatus.textContent = '高速モード: テキストがありません';
         return;
       }
-      processSpeedRecognition(parts, hasFinal);
+
+      // 正確モードと同じマッチングアルゴリズム
+      let baseIndex = Math.max(currentWord, lastMicIndex);
+      if(baseIndex < -1) baseIndex = -1;
+      const lookAhead = hasFinal ? 22 : 14;
+      const targetIndex = findNextWordIndex(parts, baseIndex, lookAhead);
+
+      if(targetIndex !== -1 && (targetIndex >= currentWord || hasFinal || currentWord === -1)){
+        if(!hasFinal){
+          // 暫定結果：透明ハイライト（速度優先）
+          highlightTo(targetIndex, { tentative: true });
+        }else{
+          // 確定結果：色判定
+          highlightTo(targetIndex, { outcome: 'match', confidence: smoothedConfidence });
+        }
+      }else{
+        unmatchedCount++;
+        const needsRecovery = hasFinal || unmatchedCount >= 2;
+        if(needsRecovery){
+          const globalIndex = findBestGlobalMatch(parts, Math.max(currentWord, lastMicIndex));
+          if(globalIndex !== -1 && (globalIndex >= currentWord || currentWord === -1)){
+            if(!hasFinal){
+              // 暫定結果：透明ハイライト
+              highlightTo(globalIndex, { tentative: true });
+            }else{
+              // 確定結果：色判定
+              highlightTo(globalIndex, { outcome: 'match', confidence: smoothedConfidence });
+            }
+          }else if(hasFinal && normalizedWords.length){
+            const softAdvance = Math.min((currentWord === -1 ? 0 : currentWord + 1), normalizedWords.length - 1);
+            if(softAdvance > currentWord){
+              highlightTo(softAdvance, { outcome: 'skip', markSkipped:false, confidence: smoothedConfidence });
+            }
+          }
+        }
+      }
+
       recStatus.textContent = (hasFinal ? '高速認識: ' : '高速処理中: ') + transcript;
       return;
     }
