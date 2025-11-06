@@ -532,6 +532,13 @@
   let lastSpeedNorm = '';
   let speedState = { history: [], map: [], lastReliable: -1, anchor: -1, missCount: 0, stability: 0, lastInputTs: 0, lastEmitTs: 0 };
 
+  // ====== AudioContext Voice Detection (Speed Mode) ======
+  let audioContext = null;
+  let audioAnalyzer = null;
+  let micStream = null;
+  let voiceDetectionInterval = null;
+  let lastVoiceDetectionIndex = -1;
+
   // ====== Lightweight Processing Algorithm Instances ======
   const confidenceHighlighter = new ConfidenceBasedHighlighter();
   const gpuAnimator = new GPUOptimizedAnimator();
@@ -924,15 +931,9 @@
             markSkipped = false;
           }
 
-          // 高速モード2段階ハイライト：
-          // 暫定結果は透明ハイライト、確定結果で色判定
-          if(!hasFinal){
-            // 暫定結果：透明ハイライト（pending状態でactive）
-            highlightTo(candidate.index, { tentative: true });
-          }else{
-            // 確定結果：色判定
-            highlightTo(candidate.index, { outcome, markSkipped });
-          }
+          // Web Speech API → リアルタイム色判定（暫定・確定両方）
+          // AudioContextが別途透明ハイライトを担当
+          highlightTo(candidate.index, { outcome, markSkipped });
 
           speedState.map[idx] = candidate.index;
           anchor = candidate.index;
@@ -977,12 +978,8 @@
       const alignment = alignSpeedWindow(tailParts, baseIndex, hasFinal);
       // フォールバックも前方進行のみ：現在位置より後ろのみ許可
       if(alignment && typeof alignment.bestIndex === 'number' && alignment.bestIndex > anchor){
-        // フォールバックも2段階ハイライト
-        if(!hasFinal){
-          highlightTo(alignment.bestIndex, { tentative: true });
-        }else{
-          highlightTo(alignment.bestIndex, { outcome:'match' });
-        }
+        // Web Speech API → リアルタイム色判定（暫定・確定両方）
+        highlightTo(alignment.bestIndex, { outcome:'match' });
 
         speedState.anchor = alignment.bestIndex;
         if(hasFinal){
@@ -1100,6 +1097,65 @@
       console.warn('Microphone permission request failed', err);
       return false;
     }
+  }
+
+  // ====== AudioContext Voice Activity Detection ======
+  async function initAudioDetection() {
+    try {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      audioAnalyzer = audioContext.createAnalyser();
+      audioAnalyzer.fftSize = 256;
+      audioAnalyzer.smoothingTimeConstant = 0.8;
+
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const source = audioContext.createMediaStreamSource(micStream);
+      source.connect(audioAnalyzer);
+
+      startVoiceDetection();
+    } catch (e) {
+      console.warn('AudioContext detection initialization failed', e);
+    }
+  }
+
+  function startVoiceDetection() {
+    if (voiceDetectionInterval) return;
+
+    const bufferLength = audioAnalyzer.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    voiceDetectionInterval = setInterval(() => {
+      if (!recognizing || recognitionMode !== 'speed') return;
+
+      audioAnalyzer.getByteFrequencyData(dataArray);
+      const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+
+      // Voice detected (threshold tuned for typical speech)
+      if (average > 30) {
+        const nextIndex = currentWord + 1;
+        if (nextIndex < normalizedWords.length && nextIndex !== lastVoiceDetectionIndex) {
+          // AudioContext detection → immediately advance transparent highlight to NEXT word
+          highlightTo(nextIndex, { tentative: true });
+          lastVoiceDetectionIndex = nextIndex;
+        }
+      }
+    }, 100); // Check every 100ms for responsive feel
+  }
+
+  function stopVoiceDetection() {
+    if (voiceDetectionInterval) {
+      clearInterval(voiceDetectionInterval);
+      voiceDetectionInterval = null;
+    }
+    if (micStream) {
+      micStream.getTracks().forEach(track => track.stop());
+      micStream = null;
+    }
+    if (audioContext && audioContext.state !== 'closed') {
+      audioContext.close();
+      audioContext = null;
+    }
+    audioAnalyzer = null;
+    lastVoiceDetectionIndex = -1;
   }
 
   function levenshtein(a,b){
@@ -1350,6 +1406,12 @@
     updateRealtimeTelemetry();
     lastTranscriptTimestamp = Date.now();
     scheduleIdleGuard();
+
+    // Initialize AudioContext voice detection for speed mode
+    if (recognitionMode === 'speed') {
+      initAudioDetection();
+    }
+
     const modePrefix = recognitionMode === 'speed' ? '【高速】' : '【正確】';
     if(recognitionSession.fromRestart){
       recStatus.textContent = `${modePrefix}再開しました。続けて話してください`;
@@ -1363,6 +1425,7 @@
   function handleRecognizerEnd(){
     recognizing = false;
     clearIdleGuard();
+    stopVoiceDetection(); // Stop AudioContext detection
     if(userStopRequested || !shouldAutoRestart){
       btnMicStart.disabled = false;
       btnMicStop.disabled = true;
@@ -1484,6 +1547,7 @@
     shouldAutoRestart = false;
     clearRestartTimer();
     clearIdleGuard();
+    stopVoiceDetection(); // Stop AudioContext detection
     if(recognizer){
       try{ recognizer.stop(); }catch(e){ console.warn(e); }
     }
