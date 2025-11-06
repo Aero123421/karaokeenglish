@@ -122,7 +122,7 @@
                 </div>
               </div>
             </div>
-            <p class="lip-sync__note">MediaPipe FaceMesh で口の開閉を推定し、ブラウザ内でのみ処理します。</p>
+            <p class="lip-sync__note">Shape Detection API (FaceDetector) とフレーム差分で口の開閉を推定し、ブラウザ内で完結します。</p>
           </div>
           <div class="hint">単語をタップして位置を移動 | <span class="kbd">S</span>: 開始/停止 | <span class="kbd">←</span>/<span class="kbd">→</span>: 前後移動</div>
         </div>
@@ -134,9 +134,6 @@
     </footer>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4.1637/camera_utils.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.4.1637/drawing_utils.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1637/face_mesh.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

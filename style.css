@@ -1070,8 +1070,8 @@
       isolation:isolate;
       transform: translateZ(0) scale(var(--confidence-scale, 1));
       will-change: opacity, filter, transform;
-      opacity: var(--confidence-opacity, 0.55);
-      filter: blur(var(--confidence-blur, 1.2px));
+      opacity: var(--confidence-opacity, 0.92);
+      filter: blur(var(--confidence-blur, 0px));
       color: var(--confidence-color, var(--pending-text));
       text-shadow: 0 0 12px var(--confidence-shadow, transparent);
       transition:
@@ -1091,7 +1091,7 @@
       border-radius:inherit;
       background: var(--confidence-backdrop, transparent);
       box-shadow: 0 8px 24px var(--confidence-glow, transparent);
-      opacity:0.95;
+      opacity:0.9;
       transition:
         background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
         box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),

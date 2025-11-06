@@ -50,11 +50,11 @@
   class ConfidenceBasedHighlighter {
     constructor() {
       this.confidenceLevels = [
-        { name: 'very-low', min: 0.0, max: 0.3, opacity: 0.35, blur: 4, color: 'var(--miss-text)', shadow: 'rgba(239, 71, 111, 0.28)', backdrop: 'linear-gradient(135deg, rgba(239, 71, 111, 0.16), rgba(239, 71, 111, 0.06))', glow: 'var(--glow-error)' },
-        { name: 'low', min: 0.3, max: 0.5, opacity: 0.5, blur: 2.2, color: 'var(--miss-text)', shadow: 'rgba(239, 71, 111, 0.2)', backdrop: 'linear-gradient(135deg, rgba(239, 71, 111, 0.12), rgba(239, 71, 111, 0.04))', glow: 'var(--glow-error)' },
-        { name: 'medium', min: 0.5, max: 0.7, opacity: 0.68, blur: 1.2, color: 'var(--accent-500)', shadow: 'rgba(250, 188, 60, 0.25)', backdrop: 'linear-gradient(135deg, rgba(255, 214, 102, 0.2), rgba(255, 182, 77, 0.08))', glow: 'rgba(250, 188, 60, 0.25)' },
-        { name: 'high', min: 0.7, max: 0.9, opacity: 0.85, blur: 0.6, color: 'var(--match-text)', shadow: 'rgba(56, 176, 96, 0.26)', backdrop: 'linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(56, 142, 60, 0.16))', glow: 'var(--glow-success)' },
-        { name: 'very-high', min: 0.9, max: 1.01, opacity: 1, blur: 0.2, color: 'var(--match-text)', shadow: 'rgba(56, 176, 96, 0.32)', backdrop: 'linear-gradient(135deg, rgba(76, 175, 80, 0.38), rgba(46, 125, 50, 0.2))', glow: 'var(--glow-success)' }
+        { name: 'very-low', min: 0.0, max: 0.3, opacity: 0.55, blur: 0, color: 'var(--miss-text)', shadow: 'rgba(239, 71, 111, 0.24)', backdrop: 'linear-gradient(135deg, rgba(239, 71, 111, 0.12), rgba(239, 71, 111, 0.05))', glow: 'var(--glow-error)' },
+        { name: 'low', min: 0.3, max: 0.5, opacity: 0.68, blur: 0, color: 'var(--miss-text)', shadow: 'rgba(239, 71, 111, 0.18)', backdrop: 'linear-gradient(135deg, rgba(239, 71, 111, 0.1), rgba(239, 71, 111, 0.04))', glow: 'var(--glow-error)' },
+        { name: 'medium', min: 0.5, max: 0.7, opacity: 0.8, blur: 0, color: 'var(--accent-500)', shadow: 'rgba(250, 188, 60, 0.22)', backdrop: 'linear-gradient(135deg, rgba(255, 214, 102, 0.18), rgba(255, 182, 77, 0.08))', glow: 'rgba(250, 188, 60, 0.22)' },
+        { name: 'high', min: 0.7, max: 0.9, opacity: 0.92, blur: 0, color: 'var(--match-text)', shadow: 'rgba(56, 176, 96, 0.28)', backdrop: 'linear-gradient(135deg, rgba(76, 175, 80, 0.28), rgba(56, 142, 60, 0.16))', glow: 'var(--glow-success)' },
+        { name: 'very-high', min: 0.9, max: 1.01, opacity: 1, blur: 0, color: 'var(--match-text)', shadow: 'rgba(56, 176, 96, 0.32)', backdrop: 'linear-gradient(135deg, rgba(76, 175, 80, 0.34), rgba(46, 125, 50, 0.18))', glow: 'var(--glow-success)' }
       ];
     }
 
@@ -216,13 +216,10 @@
     }
   }
 
-  const LIP_OUTER_INDICES = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 308];
-  const LIP_INNER_INDICES = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415];
-
   class MouthStateHysteresis {
     constructor() {
-      this.openThreshold = 0.58;
-      this.closeThreshold = 0.42;
+      this.openThreshold = 0.34;
+      this.closeThreshold = 0.2;
       this.minFrames = 2;
       this.state = 'CLOSED';
       this.counter = 0;
@@ -262,10 +259,12 @@
       this.meterFillEl = meterFillEl || null;
       this.previewEl = previewEl || null;
       this.canvasCtx = this.canvasEl ? this.canvasEl.getContext('2d') : null;
-      this.faceMesh = null;
+      this.workCanvas = document.createElement('canvas');
+      this.workCtx = this.workCanvas.getContext('2d', { willReadFrequently: true });
+      this.detector = null;
+      this.detectorReady = false;
       this.metricsListener = null;
       this.running = false;
-      this.pendingFrame = false;
       this.frameHandle = null;
       this.stream = null;
       this.ready = false;
@@ -274,6 +273,8 @@
       this.stability = 0;
       this.lastStatus = '';
       this.micActive = false;
+      this.prevMouthLuma = null;
+      this.prevMouthSize = null;
       this.processLoop = this.processLoop.bind(this);
       if (this.videoEl) {
         this.videoEl.playsInline = true;
@@ -291,24 +292,23 @@
       return this.running;
     }
 
-    async ensureFaceMesh() {
-      if (this.faceMesh) return this.faceMesh;
-      if (typeof FaceMesh === 'undefined') {
-        this.setStatus('FaceMesh が読み込まれていません');
-        throw new Error('FaceMesh ライブラリが読み込まれていません');
+    async ensureDetector() {
+      if (this.detectorReady) {
+        return this.detector;
       }
-      this.faceMesh = new FaceMesh({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1637/${file}`
-      });
-      this.faceMesh.setOptions({
-        maxNumFaces: 1,
-        refineLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      });
-      this.faceMesh.onResults((results) => this.handleResults(results));
+      if ('FaceDetector' in window) {
+        try {
+          this.detector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+        } catch (err) {
+          console.warn('FaceDetector 初期化に失敗しました', err);
+          this.detector = null;
+        }
+      } else {
+        this.detector = null;
+      }
+      this.detectorReady = true;
       this.ready = true;
-      return this.faceMesh;
+      return this.detector;
     }
 
     setMicActive(isActive) {
@@ -319,7 +319,7 @@
     }
 
     async start() {
-      await this.ensureFaceMesh();
+      await this.ensureDetector();
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         this.setStatus('カメラが利用できません');
         const error = new Error('Camera not supported');
@@ -335,7 +335,6 @@
           await this.videoEl.play().catch(()=>{});
         }
         this.running = true;
-        this.pendingFrame = false;
         this.updatePreview('idle');
         this.processLoop();
         this.emitMetrics({ ready: this.ready, active: true, hasFace: false, isOpen: false, activity: 0, stability: this.stability, syncScore: 0, timestamp: this.now() });
@@ -354,7 +353,6 @@
         cancelAnimationFrame(this.frameHandle);
         this.frameHandle = null;
       }
-      this.pendingFrame = false;
       if (this.stream) {
         this.stream.getTracks().forEach(track => track.stop());
         this.stream = null;
@@ -362,9 +360,8 @@
       if (this.videoEl) {
         this.videoEl.srcObject = null;
       }
-      if (force && this.faceMesh && typeof this.faceMesh.reset === 'function') {
-        this.faceMesh.reset();
-      }
+      this.prevMouthLuma = null;
+      this.prevMouthSize = null;
       this.activity = 0;
       this.stability *= 0.6;
       this.updatePreview('off');
@@ -374,139 +371,200 @@
       this.emitMetrics({ ready: this.ready, active: false, hasFace: false, isOpen: false, activity: 0, stability: this.stability, syncScore: 0, timestamp: this.now() });
     }
 
-    processLoop() {
+    async processLoop() {
       if (!this.running) return;
-      if (!this.faceMesh) {
-        this.frameHandle = requestAnimationFrame(this.processLoop);
-        return;
-      }
       if (!this.videoEl || this.videoEl.readyState < 2) {
         this.frameHandle = requestAnimationFrame(this.processLoop);
         return;
       }
+
+      const width = this.videoEl.videoWidth || 640;
+      const height = this.videoEl.videoHeight || 480;
+
       if (this.canvasEl) {
-        const width = this.videoEl.videoWidth || 640;
-        const height = this.videoEl.videoHeight || 480;
         if (this.canvasEl.width !== width || this.canvasEl.height !== height) {
           this.canvasEl.width = width;
           this.canvasEl.height = height;
         }
       }
-      if (this.pendingFrame) {
-        this.frameHandle = requestAnimationFrame(this.processLoop);
-        return;
+      if (this.workCanvas.width !== width || this.workCanvas.height !== height) {
+        this.workCanvas.width = width;
+        this.workCanvas.height = height;
       }
-      this.pendingFrame = true;
-      this.faceMesh.send({ image: this.videoEl }).catch(err => {
-        console.error('FaceMesh processing error', err);
-        this.pendingFrame = false;
-      });
-      this.frameHandle = requestAnimationFrame(this.processLoop);
-    }
 
-    handleResults(results) {
-      this.pendingFrame = false;
-      if (!this.running) return;
-      const now = this.now();
-      const landmarks = results?.multiFaceLandmarks?.[0];
-      if (!landmarks) {
-        this.activity *= 0.85;
-        this.stability *= 0.75;
-        this.updatePreview('idle');
-        this.updateMeter(this.activity);
-        this.setStatus('顔が検出されません');
-        this.clearCanvas();
-        this.emitMetrics({ ready: this.ready, active: true, hasFace: false, isOpen: false, activity: this.activity, stability: this.stability, syncScore: 0, timestamp: now });
-        return;
+      this.workCtx.drawImage(this.videoEl, 0, 0, width, height);
+
+      let detection = null;
+      if (this.detector) {
+        try {
+          const faces = await this.detector.detect(this.videoEl);
+          if (faces && faces.length) {
+            detection = faces[0].boundingBox || faces[0];
+          }
+        } catch (err) {
+          console.warn('FaceDetector の検出に失敗しました', err);
+          this.detector = null;
+          this.setStatus('顔検出が一時的に利用できません');
+        }
       }
-      const mar = this.calculateMAR(landmarks);
-      const isOpen = this.hysteresis.update(mar);
-      const activity = this.normalizeActivity(mar);
-      this.activity = this.activity * 0.7 + activity * 0.3;
-      this.stability = Math.min(1, this.stability * 0.82 + 0.18);
-      const syncScore = (this.activity * 0.6 + (isOpen ? 0.4 : 0)) * this.stability;
-      this.drawMouth(landmarks, isOpen, mar);
+
+      const normalizedDetection = this.normalizeRect(detection);
+      const hasFace = !!normalizedDetection;
+      const mouthBox = this.deriveMouthBox(normalizedDetection, width, height);
+      const motion = this.calculateMouthMotion(mouthBox);
+      const isOpen = this.hysteresis.update(motion.openEstimate);
+
+      this.activity = this.activity * 0.6 + motion.activity * 0.4;
+      this.stability = hasFace
+        ? Math.min(1, this.stability * 0.84 + 0.16)
+        : this.stability * 0.7;
+
+      const syncScore = (this.activity * 0.7 + (isOpen ? 0.3 : 0)) * this.stability;
+
+      this.drawOverlay(hasFace, mouthBox, isOpen, motion.openEstimate);
       this.updateMeter(this.activity);
-      this.updatePreview(isOpen ? 'speaking' : 'listening');
-      this.setStatus(isOpen ? `発話中 (MAR ${mar.toFixed(2)})` : '待機中');
+      this.updatePreview(!hasFace ? 'idle' : (isOpen ? 'speaking' : 'listening'));
+      if (!hasFace) {
+        this.setStatus('顔が検出されません');
+      } else if (isOpen) {
+        this.setStatus(`発話中 (開口推定 ${motion.openEstimate.toFixed(2)})`);
+      } else {
+        this.setStatus('待機中');
+      }
+
+      const now = this.now();
       this.emitMetrics({
         ready: this.ready,
         active: true,
-        hasFace: true,
+        hasFace,
         isOpen,
         activity: this.activity,
         stability: this.stability,
         syncScore,
-        mar,
+        openness: motion.openEstimate,
         timestamp: now
       });
+
+      this.frameHandle = requestAnimationFrame(this.processLoop);
     }
 
-    calculateMAR(landmarks) {
-      const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-      const A = dist(landmarks[13], landmarks[14]);
-      const B = dist(landmarks[82], landmarks[312]);
-      const C = dist(landmarks[81], landmarks[311]);
-      const D = dist(landmarks[61], landmarks[291]);
-      if (!D) return 0;
-      return (A + B + C) / (2 * D);
+    normalizeRect(rect) {
+      if (!rect) return null;
+      const x = typeof rect.x === 'number' ? rect.x : (typeof rect.left === 'number' ? rect.left : 0);
+      const y = typeof rect.y === 'number' ? rect.y : (typeof rect.top === 'number' ? rect.top : 0);
+      const width = typeof rect.width === 'number' ? rect.width : (typeof rect.right === 'number' ? rect.right - x : 0);
+      const height = typeof rect.height === 'number' ? rect.height : (typeof rect.bottom === 'number' ? rect.bottom - y : 0);
+      return { x, y, width, height };
     }
 
-    normalizeActivity(mar) {
-      const open = this.hysteresis.openThreshold;
-      const closed = this.hysteresis.closeThreshold;
-      const range = Math.max(0.0001, open - closed);
-      const normalized = (mar - closed) / range;
-      return Math.max(0, Math.min(1, normalized));
+    deriveMouthBox(detection, width, height) {
+      const base = detection || { x: width * 0.2, y: height * 0.35, width: width * 0.6, height: height * 0.5 };
+      const x = Math.max(0, base.x + base.width * 0.2);
+      const mouthWidth = Math.min(width - x, base.width * 0.6);
+      const y = Math.max(0, base.y + base.height * 0.55);
+      const mouthHeight = Math.min(height - y, base.height * 0.3);
+      return { x, y, width: Math.max(1, mouthWidth), height: Math.max(1, mouthHeight) };
     }
 
-    drawMouth(landmarks, isOpen, mar) {
+    calculateMouthMotion(mouthBox) {
+      if (!this.workCtx || !mouthBox) {
+        return { activity: 0, openEstimate: 0 };
+      }
+      const { x, y, width, height } = mouthBox;
+      const imageData = this.workCtx.getImageData(x, y, width, height);
+      const { data } = imageData;
+      const pixelCount = width * height;
+      if (!pixelCount) {
+        return { activity: 0, openEstimate: 0 };
+      }
+
+      if (!this.prevMouthLuma || !this.prevMouthSize || this.prevMouthSize.width !== width || this.prevMouthSize.height !== height) {
+        this.prevMouthLuma = new Float32Array(pixelCount);
+        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+          const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+          this.prevMouthLuma[p] = luma;
+        }
+        this.prevMouthSize = { width, height };
+        return { activity: 0, openEstimate: 0 };
+      }
+
+      let diff = 0;
+      let verticalSpread = 0;
+      for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+        const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        diff += Math.abs(luma - this.prevMouthLuma[p]);
+        const row = Math.floor(p / width);
+        const deviation = Math.abs(luma - this.prevMouthLuma[p]);
+        verticalSpread += deviation * (row / Math.max(1, height - 1));
+        this.prevMouthLuma[p] = luma;
+      }
+
+      const motion = diff / (pixelCount * 255);
+      const spread = verticalSpread / (pixelCount * 255);
+      const openEstimate = clampConfidence(motion * 1.8 + spread * 0.9, 0.1);
+      return {
+        activity: clampConfidence(motion * 1.5 + spread * 0.5, 0.05),
+        openEstimate
+      };
+    }
+
+    drawOverlay(hasFace, mouthBox, isOpen, openness) {
       if (!this.canvasCtx || !this.canvasEl) return;
       const ctx = this.canvasCtx;
       const width = this.canvasEl.width;
       const height = this.canvasEl.height;
       ctx.clearRect(0, 0, width, height);
-      const outer = LIP_OUTER_INDICES.map(i => this.toCanvasPoint(landmarks[i], width, height));
-      const inner = LIP_INNER_INDICES.map(i => this.toCanvasPoint(landmarks[i], width, height));
+
+      if (!mouthBox) return;
+
       ctx.save();
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
-      ctx.strokeStyle = isOpen ? 'rgba(56, 176, 96, 0.88)' : 'rgba(250, 188, 60, 0.8)';
-      ctx.fillStyle = isOpen ? 'rgba(56, 176, 96, 0.18)' : 'rgba(16, 18, 22, 0.22)';
+      ctx.strokeStyle = isOpen ? 'rgba(56, 176, 96, 0.9)' : 'rgba(250, 188, 60, 0.85)';
+      ctx.fillStyle = isOpen ? 'rgba(56, 176, 96, 0.18)' : 'rgba(16, 18, 22, 0.18)';
       ctx.lineWidth = isOpen ? 3 : 2;
-      this.drawShape(ctx, outer);
-      ctx.globalCompositeOperation = 'lighter';
-      this.drawShape(ctx, inner);
-      ctx.globalCompositeOperation = 'source-over';
+      const radius = Math.min(18, mouthBox.height / 3);
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(mouthBox.x, mouthBox.y, mouthBox.width, mouthBox.height, radius);
+      } else {
+        const r = radius;
+        const x = mouthBox.x;
+        const y = mouthBox.y;
+        const w = mouthBox.width;
+        const h = mouthBox.height;
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      if (hasFace) {
+        ctx.setLineDash([6, 10]);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.lineWidth = 1.6;
+        ctx.strokeRect(mouthBox.x - mouthBox.width * 0.35, Math.max(0, mouthBox.y - mouthBox.height * 1.6), mouthBox.width * 1.7, mouthBox.height * 2.3);
+      }
+
       ctx.restore();
+
       ctx.save();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      ctx.font = '600 18px "Noto Serif JP", serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.font = '600 16px "Noto Sans JP", system-ui';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'bottom';
       ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
       ctx.shadowBlur = 12;
-      ctx.fillText(`MAR ${mar.toFixed(2)}`, width - 18, height - 18);
+      ctx.fillText(`開口推定 ${openness.toFixed(2)}`, width - 18, height - 18);
       ctx.restore();
-    }
-
-    drawShape(ctx, points) {
-      if (!points.length) return;
-      ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-      for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(points[i].x, points[i].y);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    toCanvasPoint(landmark, width, height) {
-      return {
-        x: (1 - landmark.x) * width,
-        y: landmark.y * height
-      };
     }
 
     updatePreview(state) {
