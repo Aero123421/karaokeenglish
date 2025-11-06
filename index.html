@@ -112,17 +112,36 @@
               <span class="lip-sync__title">口の動き認識</span>
               <button id="btnLipToggle" class="lip-sync__toggle">カメラ開始</button>
             </div>
-            <div class="lip-sync__preview" data-state="idle" data-mic="off">
-              <video id="lipVideo" class="lip-sync__video" autoplay playsinline muted></video>
-              <canvas id="lipCanvas" class="lip-sync__canvas"></canvas>
-              <div class="lip-sync__hud" aria-hidden="true">
-                <div class="lip-sync__status" id="lipStatus">未開始</div>
-                <div class="lip-sync__meter">
+            <div class="lip-sync__display" id="lipDisplay" data-state="idle" data-mic="off">
+              <div class="lip-sync__status" id="lipStatus">未開始</div>
+              <div class="lip-sync__meter" aria-hidden="true">
+                <div class="lip-sync__meter-track">
                   <div class="lip-sync__meter-fill" id="lipActivityFill"></div>
+                </div>
+                <div class="lip-sync__meter-label">活動量</div>
+              </div>
+              <div class="lip-sync__states" id="lipStateMap" aria-live="polite">
+                <div class="lip-sync__state" data-level="closed">
+                  <span class="lip-sync__state-label">閉じ気味</span>
+                  <div class="lip-sync__state-bar">
+                    <div class="lip-sync__state-fill" id="lipStateClosed"></div>
+                  </div>
+                </div>
+                <div class="lip-sync__state" data-level="ajar">
+                  <span class="lip-sync__state-label">半開き</span>
+                  <div class="lip-sync__state-bar">
+                    <div class="lip-sync__state-fill" id="lipStateAjar"></div>
+                  </div>
+                </div>
+                <div class="lip-sync__state" data-level="open">
+                  <span class="lip-sync__state-label">開き気味</span>
+                  <div class="lip-sync__state-bar">
+                    <div class="lip-sync__state-fill" id="lipStateOpen"></div>
+                  </div>
                 </div>
               </div>
             </div>
-            <p class="lip-sync__note">Shape Detection API (FaceDetector) とフレーム差分で口の開閉を推定し、ブラウザ内で完結します。</p>
+            <p class="lip-sync__note">Shape Detection API (FaceDetector) と中央領域のフレーム差分で口の開閉を推定し、映像プレビューなしでブラウザ内に完結します。</p>
           </div>
           <div class="hint">単語をタップして位置を移動 | <span class="kbd">S</span>: 開始/停止 | <span class="kbd">←</span>/<span class="kbd">→</span>: 前後移動</div>
         </div>

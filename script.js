@@ -28,11 +28,13 @@
   const langSliderEl = langToggleEl?.querySelector('.lang-toggle__slider');
   const recStatus = document.getElementById('recStatus');
   const lipToggleButton = document.getElementById('btnLipToggle');
-  const lipVideoEl = document.getElementById('lipVideo');
-  const lipCanvasEl = document.getElementById('lipCanvas');
   const lipStatusEl = document.getElementById('lipStatus');
   const lipActivityFillEl = document.getElementById('lipActivityFill');
-  const lipPreviewEl = document.querySelector('.lip-sync__preview');
+  const lipDisplayEl = document.getElementById('lipDisplay');
+  const lipStateMapEl = document.getElementById('lipStateMap');
+  const lipStateClosedEl = document.getElementById('lipStateClosed');
+  const lipStateAjarEl = document.getElementById('lipStateAjar');
+  const lipStateOpenEl = document.getElementById('lipStateOpen');
 
   const lipSyncState = {
     ready: false,
@@ -42,6 +44,7 @@
     activity: 0,
     stability: 0,
     syncScore: 0,
+    openness: 0,
     lastUpdated: 0
   };
   let lipConfidenceRefreshId = null;
@@ -252,13 +255,20 @@
   }
 
   class LipSyncTracker {
-    constructor({ videoEl, canvasEl, statusEl, meterFillEl, previewEl } = {}) {
-      this.videoEl = videoEl || null;
-      this.canvasEl = canvasEl || null;
+    constructor({ statusEl, meterFillEl, displayEl } = {}) {
       this.statusEl = statusEl || null;
       this.meterFillEl = meterFillEl || null;
-      this.previewEl = previewEl || null;
-      this.canvasCtx = this.canvasEl ? this.canvasEl.getContext('2d') : null;
+      this.displayEl = displayEl || null;
+      this.videoEl = document.createElement('video');
+      this.videoEl.playsInline = true;
+      this.videoEl.muted = true;
+      this.videoEl.autoplay = true;
+      this.videoEl.setAttribute('aria-hidden', 'true');
+      this.videoEl.style.position = 'fixed';
+      this.videoEl.style.opacity = '0';
+      this.videoEl.style.pointerEvents = 'none';
+      this.videoEl.style.width = '1px';
+      this.videoEl.style.height = '1px';
       this.workCanvas = document.createElement('canvas');
       this.workCtx = this.workCanvas.getContext('2d', { willReadFrequently: true });
       this.detector = null;
@@ -276,11 +286,7 @@
       this.prevMouthLuma = null;
       this.prevMouthSize = null;
       this.processLoop = this.processLoop.bind(this);
-      if (this.videoEl) {
-        this.videoEl.playsInline = true;
-        this.videoEl.muted = true;
-      }
-      this.updatePreview('off');
+      this.updateDisplay('off');
       this.updateMeter(0);
     }
 
@@ -298,6 +304,7 @@
       }
       if ('FaceDetector' in window) {
         try {
+          // Shape Detection API FaceDetector (公式ドキュメント: https://developer.mozilla.org/docs/Web/API/FaceDetector )
           this.detector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
         } catch (err) {
           console.warn('FaceDetector 初期化に失敗しました', err);
@@ -313,9 +320,17 @@
 
     setMicActive(isActive) {
       this.micActive = !!isActive;
-      if (this.previewEl) {
-        this.previewEl.dataset.mic = this.micActive ? 'on' : 'off';
+      this.updateMicState();
+    }
+
+    async waitForMetadata() {
+      if (this.videoEl.readyState >= 1) {
+        return;
       }
+      await new Promise((resolve) => {
+        const handleLoaded = () => resolve();
+        this.videoEl.addEventListener('loadedmetadata', handleLoaded, { once: true });
+      });
     }
 
     async start() {
@@ -329,13 +344,13 @@
       if (this.running) return true;
       this.setStatus('カメラ初期化中…');
       try {
+        // MediaDevices.getUserMedia (公式ドキュメント: https://developer.mozilla.org/docs/Web/API/MediaDevices/getUserMedia )
         this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-        if (this.videoEl) {
-          this.videoEl.srcObject = this.stream;
-          await this.videoEl.play().catch(()=>{});
-        }
+        this.videoEl.srcObject = this.stream;
+        await this.waitForMetadata();
+        await this.videoEl.play().catch(()=>{});
         this.running = true;
-        this.updatePreview('idle');
+        this.updateDisplay('idle');
         this.processLoop();
         this.emitMetrics({ ready: this.ready, active: true, hasFace: false, isOpen: false, activity: 0, stability: this.stability, syncScore: 0, timestamp: this.now() });
         return true;
@@ -357,17 +372,14 @@
         this.stream.getTracks().forEach(track => track.stop());
         this.stream = null;
       }
-      if (this.videoEl) {
-        this.videoEl.srcObject = null;
-      }
+      this.videoEl.srcObject = null;
       this.prevMouthLuma = null;
       this.prevMouthSize = null;
       this.activity = 0;
       this.stability *= 0.6;
-      this.updatePreview('off');
+      this.updateDisplay('off');
       this.updateMeter(0);
       this.setStatus('停止中');
-      this.clearCanvas();
       this.emitMetrics({ ready: this.ready, active: false, hasFace: false, isOpen: false, activity: 0, stability: this.stability, syncScore: 0, timestamp: this.now() });
     }
 
@@ -381,12 +393,11 @@
       const width = this.videoEl.videoWidth || 640;
       const height = this.videoEl.videoHeight || 480;
 
-      if (this.canvasEl) {
-        if (this.canvasEl.width !== width || this.canvasEl.height !== height) {
-          this.canvasEl.width = width;
-          this.canvasEl.height = height;
-        }
+      if (!width || !height) {
+        this.frameHandle = requestAnimationFrame(this.processLoop);
+        return;
       }
+
       if (this.workCanvas.width !== width || this.workCanvas.height !== height) {
         this.workCanvas.width = width;
         this.workCanvas.height = height;
@@ -421,9 +432,8 @@
 
       const syncScore = (this.activity * 0.7 + (isOpen ? 0.3 : 0)) * this.stability;
 
-      this.drawOverlay(hasFace, mouthBox, isOpen, motion.openEstimate);
       this.updateMeter(this.activity);
-      this.updatePreview(!hasFace ? 'idle' : (isOpen ? 'speaking' : 'listening'));
+      this.updateDisplay(!hasFace ? 'idle' : (isOpen ? 'speaking' : 'listening'));
       if (!hasFace) {
         this.setStatus('顔が検出されません');
       } else if (isOpen) {
@@ -508,79 +518,22 @@
       };
     }
 
-    drawOverlay(hasFace, mouthBox, isOpen, openness) {
-      if (!this.canvasCtx || !this.canvasEl) return;
-      const ctx = this.canvasCtx;
-      const width = this.canvasEl.width;
-      const height = this.canvasEl.height;
-      ctx.clearRect(0, 0, width, height);
-
-      if (!mouthBox) return;
-
-      ctx.save();
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = isOpen ? 'rgba(56, 176, 96, 0.9)' : 'rgba(250, 188, 60, 0.85)';
-      ctx.fillStyle = isOpen ? 'rgba(56, 176, 96, 0.18)' : 'rgba(16, 18, 22, 0.18)';
-      ctx.lineWidth = isOpen ? 3 : 2;
-      const radius = Math.min(18, mouthBox.height / 3);
-      ctx.beginPath();
-      if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(mouthBox.x, mouthBox.y, mouthBox.width, mouthBox.height, radius);
-      } else {
-        const r = radius;
-        const x = mouthBox.x;
-        const y = mouthBox.y;
-        const w = mouthBox.width;
-        const h = mouthBox.height;
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
-      }
-      ctx.fill();
-      ctx.stroke();
-
-      if (hasFace) {
-        ctx.setLineDash([6, 10]);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-        ctx.lineWidth = 1.6;
-        ctx.strokeRect(mouthBox.x - mouthBox.width * 0.35, Math.max(0, mouthBox.y - mouthBox.height * 1.6), mouthBox.width * 1.7, mouthBox.height * 2.3);
-      }
-
-      ctx.restore();
-
-      ctx.save();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-      ctx.font = '600 16px "Noto Sans JP", system-ui';
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'bottom';
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
-      ctx.shadowBlur = 12;
-      ctx.fillText(`開口推定 ${openness.toFixed(2)}`, width - 18, height - 18);
-      ctx.restore();
-    }
-
-    updatePreview(state) {
-      if (!this.previewEl) return;
-      this.previewEl.dataset.state = state;
-    }
-
     updateMeter(activity) {
       if (!this.meterFillEl) return;
       const clamped = Math.max(0.05, Math.min(1, activity));
       this.meterFillEl.style.transform = `scaleX(${clamped})`;
     }
 
-    clearCanvas() {
-      if (this.canvasCtx && this.canvasEl) {
-        this.canvasCtx.clearRect(0, 0, this.canvasEl.width || 0, this.canvasEl.height || 0);
+    updateDisplay(state) {
+      if (this.displayEl) {
+        this.displayEl.dataset.state = state;
+      }
+      this.updateMicState();
+    }
+
+    updateMicState() {
+      if (this.displayEl) {
+        this.displayEl.dataset.mic = this.micActive ? 'on' : 'off';
       }
     }
 
@@ -606,12 +559,52 @@
   const confidenceInterpolator = new ConfidenceInterpolator();
   const timingGenerator = new LightweightTimingGenerator();
   const lipSyncTracker = new LipSyncTracker({
-    videoEl: lipVideoEl,
-    canvasEl: lipCanvasEl,
     statusEl: lipStatusEl,
     meterFillEl: lipActivityFillEl,
-    previewEl: lipPreviewEl
+    displayEl: lipDisplayEl
   });
+
+  function clampUnitValue(value) {
+    if (typeof value !== 'number' || Number.isNaN(value)) return 0;
+    return Math.max(0, Math.min(1, value));
+  }
+
+  function updateLipStateIndicators() {
+    const active = lipSyncState.active && lipSyncState.ready;
+    const faceDetected = active && lipSyncState.hasFace;
+    const faceState = !lipSyncState.active ? 'idle' : (faceDetected ? 'detected' : 'lost');
+    const openness = active ? clampUnitValue(lipSyncState.openness) : 0;
+    const stability = active ? clampUnitValue(lipSyncState.stability) : 0;
+    const closedLevel = active ? clampUnitValue(1 - openness * 1.4) : 0;
+    const ajarLevel = active ? clampUnitValue(1 - Math.abs(openness - 0.5) * 3) : 0;
+    const openLevel = active ? clampUnitValue((openness - 0.35) / 0.65) : 0;
+
+    if (lipStateClosedEl) {
+      lipStateClosedEl.style.setProperty('--fill', closedLevel.toFixed(3));
+    }
+    if (lipStateAjarEl) {
+      lipStateAjarEl.style.setProperty('--fill', ajarLevel.toFixed(3));
+    }
+    if (lipStateOpenEl) {
+      lipStateOpenEl.style.setProperty('--fill', openLevel.toFixed(3));
+    }
+
+    const stage = !active
+      ? 'idle'
+      : (openness > 0.6 ? 'open' : (openness > 0.35 ? 'ajar' : 'closed'));
+
+    if (lipStateMapEl) {
+      lipStateMapEl.dataset.stage = stage;
+      lipStateMapEl.dataset.face = faceState;
+      lipStateMapEl.dataset.stability = !active ? 'idle' : (stability > 0.65 ? 'steady' : (stability > 0.35 ? 'fair' : 'low'));
+    }
+    if (lipDisplayEl) {
+      lipDisplayEl.dataset.level = stage;
+      lipDisplayEl.dataset.face = faceState;
+    }
+  }
+
+  updateLipStateIndicators();
 
   lipSyncTracker.onMetrics((metrics) => {
     const timestamp = metrics && typeof metrics.timestamp === 'number'
@@ -624,10 +617,14 @@
     lipSyncState.activity = lipSyncState.active ? Math.max(0, metrics.activity || 0) : 0;
     lipSyncState.stability = lipSyncState.active ? Math.max(0, metrics.stability || 0) : 0;
     lipSyncState.syncScore = lipSyncState.active ? Math.max(0, metrics.syncScore || 0) : 0;
+    lipSyncState.openness = lipSyncState.active
+      ? clampUnitValue(metrics && typeof metrics.openness === 'number' ? metrics.openness : 0)
+      : 0;
     lipSyncState.lastUpdated = timestamp;
     if(lipToggleButton && !lipToggleButton.disabled){
       lipToggleButton.textContent = lipSyncState.active ? 'カメラ停止' : 'カメラ開始';
     }
+    updateLipStateIndicators();
     scheduleLipConfidenceRefresh();
   });
 

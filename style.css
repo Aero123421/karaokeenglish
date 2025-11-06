@@ -941,118 +941,243 @@
       color: var(--white);
       box-shadow: 0 18px 40px rgba(0, 0, 0, 0.48);
     }
-    .lip-sync__preview{
+    .lip-sync__display{
       position: relative;
       border-radius: 16px;
-      overflow: hidden;
       border: 1px solid rgba(16, 18, 22, 0.12);
-      background: rgba(16, 18, 22, 0.12);
-      aspect-ratio: 4 / 3;
+      background: linear-gradient(150deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.28));
+      padding: 20px;
       display: grid;
-      place-items: stretch;
-      isolation: isolate;
+      gap: 18px;
+      box-shadow: 0 16px 38px rgba(16, 18, 22, 0.12);
       transition: border-color .25s ease, box-shadow .25s ease, background .25s ease;
     }
-    .lip-sync__preview::after{
+    .lip-sync__display[data-state="speaking"]{
+      border-color: rgba(56, 176, 96, 0.6);
+      box-shadow: 0 22px 46px rgba(56, 176, 96, 0.18);
+      background: linear-gradient(150deg, rgba(226, 246, 236, 0.92), rgba(200, 242, 215, 0.6));
+    }
+    .lip-sync__display[data-state="listening"]{
+      border-color: rgba(250, 188, 60, 0.55);
+      box-shadow: 0 22px 46px rgba(250, 188, 60, 0.18);
+      background: linear-gradient(150deg, rgba(255, 243, 210, 0.95), rgba(255, 223, 160, 0.62));
+    }
+    .lip-sync__display[data-state="idle"]{
+      border-color: rgba(16, 18, 22, 0.14);
+      background: linear-gradient(150deg, rgba(255, 255, 255, 0.82), rgba(243, 244, 246, 0.62));
+    }
+    .lip-sync__display[data-state="off"]{
+      border-color: rgba(16, 18, 22, 0.1);
+      background: linear-gradient(150deg, rgba(248, 249, 250, 0.9), rgba(233, 234, 237, 0.58));
+      box-shadow: none;
+    }
+    .lip-sync__display::after{
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.35) 100%);
+      border-radius: inherit;
       pointer-events: none;
-      opacity: 0.75;
-      transition: opacity .25s ease;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
     }
-    .lip-sync__preview[data-state="speaking"]{
-      border-color: rgba(56, 176, 96, 0.65);
-      box-shadow: 0 18px 44px rgba(56, 176, 96, 0.18);
-      background: rgba(56, 176, 96, 0.08);
+    .lip-sync__display[data-face="lost"]::after{
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        inset 0 0 0 1px rgba(239, 71, 111, 0.35);
     }
-    .lip-sync__preview[data-state="listening"]{
-      border-color: rgba(250, 188, 60, 0.55);
-      box-shadow: 0 18px 44px rgba(250, 188, 60, 0.16);
-      background: rgba(250, 188, 60, 0.06);
+    [data-theme="dark"] .lip-sync__display{
+      border-color: rgba(255, 255, 255, 0.14);
+      background: linear-gradient(150deg, rgba(24, 26, 32, 0.92), rgba(24, 26, 32, 0.68));
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
     }
-    .lip-sync__preview[data-state="idle"]{
-      border-color: rgba(16, 18, 22, 0.12);
-      box-shadow: 0 12px 30px rgba(16, 18, 22, 0.12);
-    }
-    .lip-sync__preview[data-state="off"]{
-      border-color: rgba(16, 18, 22, 0.08);
-      background: rgba(16, 18, 22, 0.08);
-      box-shadow: none;
-    }
-    .lip-sync__preview[data-mic="on"]::after{
-      opacity: 0.55;
-    }
-    [data-theme="dark"] .lip-sync__preview{
-      border-color: rgba(255, 255, 255, 0.12);
-      background: rgba(255, 255, 255, 0.05);
-    }
-    [data-theme="dark"] .lip-sync__preview[data-state="speaking"]{
+    [data-theme="dark"] .lip-sync__display[data-state="speaking"]{
       border-color: rgba(120, 220, 180, 0.75);
-      box-shadow: 0 20px 44px rgba(120, 220, 180, 0.32);
-      background: rgba(120, 220, 180, 0.12);
+      background: linear-gradient(150deg, rgba(20, 52, 44, 0.9), rgba(14, 78, 52, 0.7));
+      box-shadow: 0 24px 52px rgba(80, 200, 160, 0.32);
     }
-    [data-theme="dark"] .lip-sync__preview[data-state="listening"]{
-      border-color: rgba(255, 214, 102, 0.6);
-      box-shadow: 0 20px 44px rgba(255, 214, 102, 0.28);
-      background: rgba(255, 214, 102, 0.16);
+    [data-theme="dark"] .lip-sync__display[data-state="listening"]{
+      border-color: rgba(255, 214, 102, 0.7);
+      background: linear-gradient(150deg, rgba(42, 34, 14, 0.92), rgba(64, 44, 8, 0.68));
+      box-shadow: 0 24px 52px rgba(255, 214, 102, 0.28);
     }
-    .lip-sync__video,
-    .lip-sync__canvas{
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      position: absolute;
-      inset: 0;
-      transform: scaleX(-1);
+    [data-theme="dark"] .lip-sync__display[data-state="idle"]{
+      background: linear-gradient(150deg, rgba(32, 34, 40, 0.9), rgba(26, 28, 34, 0.7));
     }
-    .lip-sync__video{filter: saturate(1.1) contrast(1.02);}
-    .lip-sync__canvas{z-index: 2; pointer-events: none;}
-    .lip-sync__hud{
-      position: absolute;
-      left: 16px;
-      right: 16px;
-      bottom: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 3;
+    [data-theme="dark"] .lip-sync__display[data-face="lost"]::after{
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        inset 0 0 0 1px rgba(239, 71, 111, 0.45);
     }
     .lip-sync__status{
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 600;
       letter-spacing: .02em;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    [data-theme="dark"] .lip-sync__status{
       color: var(--white);
-      text-shadow: 0 0 18px rgba(0, 0, 0, 0.65);
+    }
+    .lip-sync__status::before{
+      content: '';
+      display: inline-flex;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(16, 18, 22, 0.28);
+      box-shadow: 0 0 0 3px rgba(16, 18, 22, 0.12);
+      transition: background .25s ease, box-shadow .25s ease;
+    }
+    .lip-sync__display[data-face="detected"] .lip-sync__status::before{
+      background: rgba(56, 176, 96, 0.85);
+      box-shadow: 0 0 0 3px rgba(56, 176, 96, 0.18);
+    }
+    .lip-sync__display[data-face="lost"] .lip-sync__status::before{
+      background: rgba(239, 71, 111, 0.9);
+      box-shadow: 0 0 0 3px rgba(239, 71, 111, 0.22);
     }
     .lip-sync__meter{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .lip-sync__meter-label{
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(16, 18, 22, 0.62);
+    }
+    [data-theme="dark"] .lip-sync__meter-label{
+      color: rgba(255, 255, 255, 0.62);
+    }
+    .lip-sync__meter-track{
       position: relative;
-      width: 100%;
-      height: 7px;
+      flex: 1;
+      height: 8px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.35);
+      background: rgba(16, 18, 22, 0.12);
       overflow: hidden;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+      box-shadow: inset 0 2px 5px rgba(16, 18, 22, 0.14);
+    }
+    [data-theme="dark"] .lip-sync__meter-track{
+      background: rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
     }
     .lip-sync__meter-fill{
       position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 12%;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(56, 176, 96, 0.9), rgba(76, 175, 80, 0.7));
+      transform-origin: left center;
+      transform: scaleX(0);
+      transition: transform .22s ease, background .22s ease;
+    }
+    .lip-sync__display[data-state="listening"] .lip-sync__meter-fill{
+      background: linear-gradient(135deg, rgba(255, 214, 102, 0.85), rgba(255, 182, 77, 0.7));
+    }
+    .lip-sync__display[data-state="idle"] .lip-sync__meter-fill,
+    .lip-sync__display[data-state="off"] .lip-sync__meter-fill{
+      background: linear-gradient(135deg, rgba(16, 18, 22, 0.35), rgba(16, 18, 22, 0.18));
+    }
+    .lip-sync__states{
+      display: grid;
+      gap: 12px;
+    }
+    .lip-sync__state{
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.45);
+      border: 1px solid rgba(16, 18, 22, 0.06);
+      transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
+    }
+    .lip-sync__state-label{
+      min-width: 60px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .02em;
+      color: rgba(16, 18, 22, 0.78);
+    }
+    .lip-sync__state-bar{
+      position: relative;
+      flex: 1;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(16, 18, 22, 0.12);
+      overflow: hidden;
+    }
+    .lip-sync__state-fill{
+      position: absolute;
+      inset: 0;
       border-radius: inherit;
       background: linear-gradient(135deg, rgba(56, 176, 96, 0.85), rgba(76, 175, 80, 0.65));
       transform-origin: left center;
-      transform: scaleX(0.1);
-      transition: transform .22s ease, background .22s ease;
+      transform: scaleX(var(--fill, 0));
+      transition: transform .22s ease, background .22s ease, opacity .22s ease;
+      opacity: calc(0.45 + var(--fill, 0) * 0.55);
     }
-    .lip-sync__preview[data-state="listening"] .lip-sync__meter-fill{
-      background: linear-gradient(135deg, rgba(255, 214, 102, 0.85), rgba(255, 182, 77, 0.65));
+    .lip-sync__state[data-level="ajar"] .lip-sync__state-fill{
+      background: linear-gradient(135deg, rgba(255, 214, 102, 0.85), rgba(255, 182, 77, 0.7));
     }
-    .lip-sync__preview[data-state="idle"] .lip-sync__meter-fill,
-    .lip-sync__preview[data-state="off"] .lip-sync__meter-fill{
-      background: linear-gradient(135deg, rgba(16, 18, 22, 0.35), rgba(16, 18, 22, 0.18));
+    .lip-sync__state[data-level="open"] .lip-sync__state-fill{
+      background: linear-gradient(135deg, rgba(70, 130, 180, 0.85), rgba(65, 105, 225, 0.7));
+    }
+    .lip-sync__states[data-stage="closed"] .lip-sync__state[data-level="closed"],
+    .lip-sync__states[data-stage="ajar"] .lip-sync__state[data-level="ajar"],
+    .lip-sync__states[data-stage="open"] .lip-sync__state[data-level="open"]{
+      background: rgba(56, 176, 96, 0.08);
+      border-color: rgba(56, 176, 96, 0.24);
+      box-shadow: inset 0 0 0 1px rgba(56, 176, 96, 0.12);
+    }
+    .lip-sync__states[data-stage="ajar"] .lip-sync__state[data-level="ajar"]{
+      background: rgba(255, 214, 102, 0.1);
+      border-color: rgba(255, 214, 102, 0.26);
+      box-shadow: inset 0 0 0 1px rgba(255, 214, 102, 0.12);
+    }
+    .lip-sync__states[data-stage="open"] .lip-sync__state[data-level="open"]{
+      background: rgba(65, 105, 225, 0.12);
+      border-color: rgba(65, 105, 225, 0.28);
+      box-shadow: inset 0 0 0 1px rgba(65, 105, 225, 0.16);
+    }
+    [data-theme="dark"] .lip-sync__state{
+      background: rgba(20, 22, 28, 0.65);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    [data-theme="dark"] .lip-sync__state-label{
+      color: rgba(255, 255, 255, 0.75);
+    }
+    [data-theme="dark"] .lip-sync__state-bar{
+      background: rgba(255, 255, 255, 0.18);
+    }
+    [data-theme="dark"] .lip-sync__states[data-stage="closed"] .lip-sync__state[data-level="closed"],
+    [data-theme="dark"] .lip-sync__states[data-stage="ajar"] .lip-sync__state[data-level="ajar"],
+    [data-theme="dark"] .lip-sync__states[data-stage="open"] .lip-sync__state[data-level="open"]{
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+    }
+    [data-theme="dark"] .lip-sync__states[data-face="idle"] .lip-sync__state{
+      background: rgba(30, 32, 40, 0.65);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .lip-sync__states[data-face="lost"] .lip-sync__state{
+      background: rgba(239, 71, 111, 0.08);
+      border-color: rgba(239, 71, 111, 0.28);
+    }
+    .lip-sync__states[data-face="idle"] .lip-sync__state{
+      background: rgba(255, 255, 255, 0.38);
+      border-color: rgba(16, 18, 22, 0.08);
+    }
+    .lip-sync__states[data-stability="low"] .lip-sync__state{
+      opacity: 0.7;
+    }
+    .lip-sync__states[data-stability="idle"] .lip-sync__state{
+      opacity: 0.82;
+    }
+    .lip-sync__states[data-stability="steady"] .lip-sync__state{
+      box-shadow: inset 0 0 0 1px rgba(56, 176, 96, 0.2);
     }
     .lip-sync__note{
       margin: 0;
