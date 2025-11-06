@@ -911,9 +911,6 @@
     .word.word--missed{
       color:var(--miss-text);
       font-weight:600;
-      text-decoration: underline wavy currentColor;
-      text-decoration-thickness: 2px;
-      text-underline-offset: 6px;
     }
     .word.word--missed::before{
       background:var(--miss-bg);
