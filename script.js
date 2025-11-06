@@ -1,459 +1,321 @@
+  // ====== Performance Utilities ======
+  const debounce = (fn, delay) => {
+    let timeoutId;
+    return (...args) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn(...args), delay);
+    };
+  };
+
+  const throttle = (fn, limit) => {
+    let inThrottle;
+    return function(...args) {
+      if (!inThrottle) {
+        fn.apply(this, args);
+        inThrottle = true;
+        setTimeout(() => inThrottle = false, limit);
+      }
+    };
+  };
+
+  // ====== DOM Elements Cache ======
   const textInput = document.getElementById('textInput');
   const reader = document.getElementById('reader');
   const loadSample = document.getElementById('loadSample');
   const resetHL = document.getElementById('resetHL');
   const recLangRadios = Array.from(document.querySelectorAll('input[name="recLang"]'));
   const langToggleEl = document.querySelector('.lang-toggle');
-  const langSliderEl = langToggleEl ? langToggleEl.querySelector('.lang-toggle__slider') : null;
+  const langSliderEl = langToggleEl?.querySelector('.lang-toggle__slider');
   const recStatus = document.getElementById('recStatus');
-  const updateLangSlider = () => {
-    if (!langToggleEl || !langSliderEl) return;
-    const activeInput = langToggleEl.querySelector('input[type="radio"]:checked');
-    if (!activeInput) return;
-    const activeLabel = langToggleEl.querySelector(`label[for="${activeInput.id}"]`);
-    if (!activeLabel) return;
-    const langRect = langToggleEl.getBoundingClientRect();
-    const labelRect = activeLabel.getBoundingClientRect();
-    if (!labelRect.width) return;
-    const styles = getComputedStyle(langToggleEl);
-    const paddingLeft = parseFloat(styles.paddingLeft) || 0;
-    const borderLeft = parseFloat(styles.borderLeftWidth) || 0;
-    const offset = labelRect.left - langRect.left - borderLeft - paddingLeft;
-    langToggleEl.style.setProperty('--slider-offset', `${offset}px`);
-    langToggleEl.style.setProperty('--slider-width', `${labelRect.width}px`);
+
+  // ====== Unified Toggle Slider System ======
+  const createToggleSlider = (toggleEl, sliderEl, offsetVar, widthVar) => {
+    if (!toggleEl || !sliderEl) return null;
+
+    // Cache for computed styles to avoid repeated calculations
+    let cachedMetrics = null;
+    let metricsValid = false;
+
+    const invalidateMetrics = () => { metricsValid = false; };
+
+    const getMetrics = () => {
+      if (metricsValid && cachedMetrics) return cachedMetrics;
+      const rect = toggleEl.getBoundingClientRect();
+      const styles = getComputedStyle(toggleEl);
+      cachedMetrics = {
+        rect,
+        paddingLeft: parseFloat(styles.paddingLeft) || 0,
+        paddingRight: parseFloat(styles.paddingRight) || 0,
+        borderLeft: parseFloat(styles.borderLeftWidth) || 0,
+        borderRight: parseFloat(styles.borderRightWidth) || 0
+      };
+      metricsValid = true;
+      return cachedMetrics;
+    };
+
+    const updateSlider = () => {
+      const activeInput = toggleEl.querySelector('input[type="radio"]:checked');
+      if (!activeInput) return;
+      const activeLabel = toggleEl.querySelector(`label[for="${activeInput.id}"]`);
+      if (!activeLabel) return;
+
+      const { rect, paddingLeft, borderLeft } = getMetrics();
+      const labelRect = activeLabel.getBoundingClientRect();
+      if (!labelRect.width) return;
+
+      const offset = labelRect.left - rect.left - borderLeft - paddingLeft;
+      toggleEl.style.setProperty(offsetVar, `${offset}px`);
+      toggleEl.style.setProperty(widthVar, `${labelRect.width}px`);
+    };
+
+    const scheduleUpdate = () => requestAnimationFrame(updateSlider);
+
+    // Invalidate cache on resize
+    const handleResize = debounce(() => {
+      invalidateMetrics();
+      scheduleUpdate();
+    }, 100);
+
+    window.addEventListener('resize', handleResize);
+
+    return { updateSlider, scheduleUpdate, invalidateMetrics };
   };
-  if (langToggleEl && langSliderEl) {
-    const scheduleLangSlider = () => requestAnimationFrame(updateLangSlider);
-    scheduleLangSlider();
+
+  // Initialize language toggle slider
+  const langSlider = createToggleSlider(langToggleEl, langSliderEl, '--slider-offset', '--slider-width');
+  if (langSlider) {
+    langSlider.scheduleUpdate();
     recLangRadios.forEach(input => {
-      input.addEventListener('change', scheduleLangSlider);
-      input.addEventListener('focus', scheduleLangSlider);
+      input.addEventListener('change', langSlider.scheduleUpdate);
+      input.addEventListener('focus', langSlider.scheduleUpdate);
     });
-    window.addEventListener('resize', scheduleLangSlider);
   }
 
-  if (langToggleEl && langSliderEl) {
-    const langOptions = Array.from(langToggleEl.querySelectorAll('.lang-toggle__option'));
-    const langDragState = { active:false, pointerId:null, rect:null, paddingLeft:0, paddingRight:0, borderLeft:0, borderRight:0, hover:null };
+  // ====== Unified Draggable Toggle System ======
+  const createDraggableToggle = (toggleEl, sliderEl, options, radioInputs, sliderUpdater, offsetVar, widthVar) => {
+    if (!toggleEl || !sliderEl) return;
+
+    const dragState = {
+      active: false,
+      pointerId: null,
+      rect: null,
+      paddingLeft: 0,
+      paddingRight: 0,
+      borderLeft: 0,
+      borderRight: 0,
+      hover: null
+    };
 
     const ensureMetrics = () => {
-      langDragState.rect = langToggleEl.getBoundingClientRect();
-      const styles = getComputedStyle(langToggleEl);
-      langDragState.paddingLeft = parseFloat(styles.paddingLeft) || 0;
-      langDragState.paddingRight = parseFloat(styles.paddingRight) || 0;
-      langDragState.borderLeft = parseFloat(styles.borderLeftWidth) || 0;
-      langDragState.borderRight = parseFloat(styles.borderRightWidth) || 0;
+      dragState.rect = toggleEl.getBoundingClientRect();
+      const styles = getComputedStyle(toggleEl);
+      dragState.paddingLeft = parseFloat(styles.paddingLeft) || 0;
+      dragState.paddingRight = parseFloat(styles.paddingRight) || 0;
+      dragState.borderLeft = parseFloat(styles.borderLeftWidth) || 0;
+      dragState.borderRight = parseFloat(styles.borderRightWidth) || 0;
     };
 
     const commitOption = (label) => {
-      if(!label) return;
+      if (!label) return;
       const id = label.getAttribute('for');
-      if(!id) return;
-      const input = langToggleEl.querySelector(`#${id}`);
-      if(input && !input.checked){
+      if (!id) return;
+      const input = toggleEl.querySelector(`#${id}`);
+      if (input && !input.checked) {
         input.checked = true;
-        input.dispatchEvent(new Event('change', { bubbles:true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
       }
     };
 
     const updateDragVisual = (clientX, commit = false) => {
-      if(!langDragState.rect) ensureMetrics();
-      const { rect, paddingLeft, paddingRight, borderLeft, borderRight } = langDragState;
-      if(!rect) return;
+      if (!dragState.rect) ensureMetrics();
+      const { rect, paddingLeft, paddingRight, borderLeft, borderRight } = dragState;
+      if (!rect) return;
       const innerWidth = rect.width - paddingLeft - paddingRight - borderLeft - borderRight;
-      if(innerWidth <= 0) return;
+      if (innerWidth <= 0) return;
+
       let x = clientX - rect.left - borderLeft - paddingLeft;
       x = Math.max(0, Math.min(innerWidth, x));
+
       let closestLabel = null;
       let minDist = Infinity;
-      langOptions.forEach(label => {
+      options.forEach(label => {
         const optionRect = label.getBoundingClientRect();
         const center = optionRect.left - rect.left - borderLeft - paddingLeft + optionRect.width / 2;
         const dist = Math.abs(center - x);
-        if(dist < minDist){
+        if (dist < minDist) {
           minDist = dist;
           closestLabel = label;
         }
       });
-      if(!closestLabel) return;
-      if(langDragState.hover && langDragState.hover !== closestLabel){
-        langDragState.hover.classList.remove('is-hovered');
+
+      if (!closestLabel) return;
+      if (dragState.hover && dragState.hover !== closestLabel) {
+        dragState.hover.classList.remove('is-hovered');
       }
       closestLabel.classList.add('is-hovered');
-      langDragState.hover = closestLabel;
+      dragState.hover = closestLabel;
+
       const optionRect = closestLabel.getBoundingClientRect();
       const sliderWidth = optionRect.width;
       const maxOffset = Math.max(0, innerWidth - sliderWidth);
       const offset = Math.max(0, Math.min(x - sliderWidth / 2, maxOffset));
-      langToggleEl.style.setProperty('--slider-width', `${sliderWidth}px`);
-      langToggleEl.style.setProperty('--slider-offset', `${offset}px`);
-      if(commit){
+      toggleEl.style.setProperty(widthVar, `${sliderWidth}px`);
+      toggleEl.style.setProperty(offsetVar, `${offset}px`);
+
+      if (commit) {
         commitOption(closestLabel);
-        requestAnimationFrame(updateLangSlider);
+        if (sliderUpdater) requestAnimationFrame(sliderUpdater);
       }
     };
 
     const finishDrag = () => {
-      if(langDragState.pointerId !== null){
-        try{ langToggleEl.releasePointerCapture(langDragState.pointerId); }catch(_err){}
+      if (dragState.pointerId !== null) {
+        try { toggleEl.releasePointerCapture(dragState.pointerId); } catch (_err) {}
       }
-      langDragState.pointerId = null;
-      langDragState.active = false;
-      langToggleEl.classList.remove('lang-toggle--dragging');
-      if(langDragState.hover){
-        langDragState.hover.classList.remove('is-hovered');
-        langDragState.hover = null;
+      dragState.pointerId = null;
+      dragState.active = false;
+      toggleEl.classList.remove(`${toggleEl.classList[0]}--dragging`);
+      if (dragState.hover) {
+        dragState.hover.classList.remove('is-hovered');
+        dragState.hover = null;
       }
-      langDragState.rect = null;
-      requestAnimationFrame(updateLangSlider);
+      dragState.rect = null;
+      if (sliderUpdater) requestAnimationFrame(sliderUpdater);
     };
 
-    let langSwipeStart = 0;
-    const handlePointerMove = (ev) => {
-      if(!langDragState.active || (langDragState.pointerId !== null && ev.pointerId !== langDragState.pointerId)) return;
+    let swipeStart = 0;
+    const handlePointerMove = throttle((ev) => {
+      if (!dragState.active || (dragState.pointerId !== null && ev.pointerId !== dragState.pointerId)) return;
       updateDragVisual(ev.clientX, false);
-      
+
       // Track swipe for navigation
-      const delta = ev.clientX - langSwipeStart;
-      if(Math.abs(delta) > 50){
-        const currentIndex = recLangRadios.findIndex(r => r.checked);
-        if(delta > 0 && currentIndex > 0){
-          // Swipe right: previous option
-          recLangRadios[currentIndex - 1].checked = true;
-          recLangRadios[currentIndex - 1].dispatchEvent(new Event('change', {bubbles: true}));
-          langSwipeStart = ev.clientX;
-        } else if(delta < 0 && currentIndex < recLangRadios.length - 1){
-          // Swipe left: next option
-          recLangRadios[currentIndex + 1].checked = true;
-          recLangRadios[currentIndex + 1].dispatchEvent(new Event('change', {bubbles: true}));
-          langSwipeStart = ev.clientX;
+      if (radioInputs) {
+        const delta = ev.clientX - swipeStart;
+        if (Math.abs(delta) > 50) {
+          const currentIndex = radioInputs.findIndex(r => r.checked);
+          if (delta > 0 && currentIndex > 0) {
+            radioInputs[currentIndex - 1].checked = true;
+            radioInputs[currentIndex - 1].dispatchEvent(new Event('change', { bubbles: true }));
+            swipeStart = ev.clientX;
+          } else if (delta < 0 && currentIndex < radioInputs.length - 1) {
+            radioInputs[currentIndex + 1].checked = true;
+            radioInputs[currentIndex + 1].dispatchEvent(new Event('change', { bubbles: true }));
+            swipeStart = ev.clientX;
+          }
         }
       }
-    };
+    }, 16); // ~60fps
 
     const handlePointerUp = (ev) => {
-      if(!langDragState.active || (langDragState.pointerId !== null && ev.pointerId !== langDragState.pointerId)) return;
+      if (!dragState.active || (dragState.pointerId !== null && ev.pointerId !== dragState.pointerId)) return;
       updateDragVisual(ev.clientX, true);
-      if(langSliderEl){
-        langSliderEl.style.transform = '';
+      if (sliderEl) {
+        sliderEl.style.transform = '';
       }
       finishDrag();
     };
 
-    langToggleEl.addEventListener('pointerdown', (ev) => {
-      if(ev.pointerType === 'mouse' && ev.button !== 0) return;
-      const optionLabel = ev.target.closest('label.lang-toggle__option');
-      if(ev.pointerType === 'mouse' && optionLabel && langToggleEl.contains(optionLabel)){
+    toggleEl.addEventListener('pointerdown', (ev) => {
+      if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+      const optionLabel = ev.target.closest('label');
+      if (ev.pointerType === 'mouse' && optionLabel && toggleEl.contains(optionLabel)) {
         return;
       }
       ensureMetrics();
-      langDragState.active = true;
-      langDragState.pointerId = ev.pointerId;
-      langSwipeStart = ev.clientX;
-      langToggleEl.classList.add('lang-toggle--dragging');
-      try{ langToggleEl.setPointerCapture(ev.pointerId); }catch(_err){}
+      dragState.active = true;
+      dragState.pointerId = ev.pointerId;
+      swipeStart = ev.clientX;
+      toggleEl.classList.add(`${toggleEl.classList[0]}--dragging`);
+      try { toggleEl.setPointerCapture(ev.pointerId); } catch (_err) {}
       updateDragVisual(ev.clientX, false);
-      if(ev.pointerType !== 'mouse'){
+      if (ev.pointerType !== 'mouse') {
         ev.preventDefault();
       }
     });
-    langToggleEl.addEventListener('pointermove', handlePointerMove);
-    langToggleEl.addEventListener('pointerup', handlePointerUp);
-    langToggleEl.addEventListener('pointercancel', handlePointerUp);
-    langToggleEl.addEventListener('lostpointercapture', finishDrag);
+
+    toggleEl.addEventListener('pointermove', handlePointerMove);
+    toggleEl.addEventListener('pointerup', handlePointerUp);
+    toggleEl.addEventListener('pointercancel', handlePointerUp);
+    toggleEl.addEventListener('lostpointercapture', finishDrag);
+  };
+
+  // Initialize language toggle drag
+  if (langToggleEl && langSliderEl) {
+    const langOptions = Array.from(langToggleEl.querySelectorAll('.lang-toggle__option'));
+    createDraggableToggle(
+      langToggleEl,
+      langSliderEl,
+      langOptions,
+      recLangRadios,
+      langSlider?.updateSlider,
+      '--slider-offset',
+      '--slider-width'
+    );
   }
   const getSelectedLang = () => {
     const active = recLangRadios.find(input => input.checked);
     return active ? active.value : 'en-US';
   };
+
   const btnMicStart = document.getElementById('btnMicStart');
   const btnMicStop = document.getElementById('btnMicStop');
-  
-  // Scroll toggle (auto/manual)
+
+  // ====== Mode Toggle ======
+  const recModeRadios = Array.from(document.querySelectorAll('input[name="recMode"]'));
+  const modeToggleEl = document.querySelector('.mode-toggle');
+  const modeSliderEl = modeToggleEl?.querySelector('.mode-toggle__slider');
+
+  const modeSlider = createToggleSlider(modeToggleEl, modeSliderEl, '--mode-slider-offset', '--mode-slider-width');
+  if (modeSlider) {
+    modeSlider.scheduleUpdate();
+    recModeRadios.forEach(input => {
+      input.addEventListener('change', modeSlider.scheduleUpdate);
+      input.addEventListener('focus', modeSlider.scheduleUpdate);
+    });
+  }
+
+  if (modeToggleEl && modeSliderEl) {
+    const modeOptions = Array.from(modeToggleEl.querySelectorAll('.mode-toggle__option'));
+    createDraggableToggle(
+      modeToggleEl,
+      modeSliderEl,
+      modeOptions,
+      recModeRadios,
+      modeSlider?.updateSlider,
+      '--mode-slider-offset',
+      '--mode-slider-width'
+    );
+  }
+
+  // ====== Scroll Toggle ======
   const scrollModeRadios = Array.from(document.querySelectorAll('input[name="scrollMode"]'));
   const scrollToggleEl = document.querySelector('.scroll-toggle');
-  const scrollSliderEl = scrollToggleEl ? scrollToggleEl.querySelector('.scroll-toggle__slider') : null;
+  const scrollSliderEl = scrollToggleEl?.querySelector('.scroll-toggle__slider');
   let autoScrollEnabled = true;
-  
-  const updateScrollSlider = () => {
-    if (!scrollToggleEl || !scrollSliderEl) return;
-    const activeInput = scrollToggleEl.querySelector('input[type="radio"]:checked');
-    if (!activeInput) return;
-    const activeLabel = scrollToggleEl.querySelector(`label[for="${activeInput.id}"]`);
-    if (!activeLabel) return;
-    const scrollRect = scrollToggleEl.getBoundingClientRect();
-    const labelRect = activeLabel.getBoundingClientRect();
-    if (!labelRect.width) return;
-    const styles = getComputedStyle(scrollToggleEl);
-    const paddingLeft = parseFloat(styles.paddingLeft) || 0;
-    const borderLeft = parseFloat(styles.borderLeftWidth) || 0;
-    const offset = labelRect.left - scrollRect.left - borderLeft - paddingLeft;
-    scrollToggleEl.style.setProperty('--scroll-slider-offset', `${offset}px`);
-    scrollToggleEl.style.setProperty('--scroll-slider-width', `${labelRect.width}px`);
-  };
-  
-  if (scrollToggleEl && scrollSliderEl) {
-    const scheduleScrollSlider = () => requestAnimationFrame(updateScrollSlider);
-    scheduleScrollSlider();
+
+  const scrollSlider = createToggleSlider(scrollToggleEl, scrollSliderEl, '--scroll-slider-offset', '--scroll-slider-width');
+  if (scrollSlider) {
+    scrollSlider.scheduleUpdate();
     scrollModeRadios.forEach(input => {
       input.addEventListener('change', () => {
         autoScrollEnabled = input.value === 'auto';
-        scheduleScrollSlider();
+        scrollSlider.scheduleUpdate();
       });
-      input.addEventListener('focus', scheduleScrollSlider);
+      input.addEventListener('focus', scrollSlider.scheduleUpdate);
     });
-    window.addEventListener('resize', scheduleScrollSlider);
-    
-    // Draggable scroll toggle
-    const scrollOptions = Array.from(scrollToggleEl.querySelectorAll('.scroll-toggle__option'));
-    const scrollDragState = { active:false, pointerId:null, rect:null, paddingLeft:0, paddingRight:0, borderLeft:0, borderRight:0, hover:null };
-
-    const ensureScrollMetrics = () => {
-      scrollDragState.rect = scrollToggleEl.getBoundingClientRect();
-      const styles = getComputedStyle(scrollToggleEl);
-      scrollDragState.paddingLeft = parseFloat(styles.paddingLeft) || 0;
-      scrollDragState.paddingRight = parseFloat(styles.paddingRight) || 0;
-      scrollDragState.borderLeft = parseFloat(styles.borderLeftWidth) || 0;
-      scrollDragState.borderRight = parseFloat(styles.borderRightWidth) || 0;
-    };
-
-    const commitScrollOption = (label) => {
-      if(!label) return;
-      const id = label.getAttribute('for');
-      if(!id) return;
-      const input = scrollToggleEl.querySelector(`#${id}`);
-      if(input && !input.checked){
-        input.checked = true;
-        input.dispatchEvent(new Event('change', {bubbles: true}));
-      }
-    };
-
-    const updateScrollDragVisual = (clientX, commit = false) => {
-      if(!scrollDragState.rect) ensureScrollMetrics();
-      const { rect, paddingLeft, paddingRight, borderLeft, borderRight } = scrollDragState;
-      if(!rect) return;
-      const innerWidth = rect.width - paddingLeft - paddingRight - borderLeft - borderRight;
-      if(innerWidth <= 0) return;
-      let x = clientX - rect.left - borderLeft - paddingLeft;
-      x = Math.max(0, Math.min(innerWidth, x));
-      let closestLabel = null;
-      let minDist = Infinity;
-      scrollOptions.forEach(label => {
-        const optionRect = label.getBoundingClientRect();
-        const center = optionRect.left - rect.left - borderLeft - paddingLeft + optionRect.width / 2;
-        const dist = Math.abs(center - x);
-        if(dist < minDist){
-          minDist = dist;
-          closestLabel = label;
-        }
-      });
-      if(!closestLabel) return;
-      if(scrollDragState.hover && scrollDragState.hover !== closestLabel){
-        scrollDragState.hover.classList.remove('is-hovered');
-      }
-      closestLabel.classList.add('is-hovered');
-      scrollDragState.hover = closestLabel;
-      const optionRect = closestLabel.getBoundingClientRect();
-      const sliderWidth = optionRect.width;
-      const maxOffset = Math.max(0, innerWidth - sliderWidth);
-      const offset = Math.max(0, Math.min(x - sliderWidth / 2, maxOffset));
-      scrollToggleEl.style.setProperty('--scroll-slider-width', `${sliderWidth}px`);
-      scrollToggleEl.style.setProperty('--scroll-slider-offset', `${offset}px`);
-      if(commit){
-        commitScrollOption(closestLabel);
-        requestAnimationFrame(updateScrollSlider);
-      }
-    };
-
-    const finishScrollDrag = () => {
-      if(scrollDragState.pointerId !== null){
-        try{ scrollToggleEl.releasePointerCapture(scrollDragState.pointerId); }catch(_err){}
-      }
-      scrollDragState.pointerId = null;
-      scrollDragState.active = false;
-      scrollToggleEl.classList.remove('scroll-toggle--dragging');
-      if(scrollDragState.hover){
-        scrollDragState.hover.classList.remove('is-hovered');
-        scrollDragState.hover = null;
-      }
-      scrollDragState.rect = null;
-      requestAnimationFrame(updateScrollSlider);
-    };
-
-    const handleScrollPointerMove = (ev) => {
-      if(!scrollDragState.active || (scrollDragState.pointerId !== null && ev.pointerId !== scrollDragState.pointerId)) return;
-      updateScrollDragVisual(ev.clientX, false);
-    };
-
-    const handleScrollPointerUp = (ev) => {
-      if(!scrollDragState.active || (scrollDragState.pointerId !== null && ev.pointerId !== scrollDragState.pointerId)) return;
-      updateScrollDragVisual(ev.clientX, true);
-      if(scrollSliderEl){
-        scrollSliderEl.style.transform = '';
-      }
-      finishScrollDrag();
-    };
-
-    scrollToggleEl.addEventListener('pointerdown', (ev) => {
-      if(ev.pointerType === 'mouse' && ev.button !== 0) return;
-      const optionLabel = ev.target.closest('label.scroll-toggle__option');
-      if(ev.pointerType === 'mouse' && optionLabel && scrollToggleEl.contains(optionLabel)){
-        return;
-      }
-      ensureScrollMetrics();
-      scrollDragState.active = true;
-      scrollDragState.pointerId = ev.pointerId;
-      scrollToggleEl.classList.add('scroll-toggle--dragging');
-      try{ scrollToggleEl.setPointerCapture(ev.pointerId); }catch(_err){}
-      updateScrollDragVisual(ev.clientX, false);
-      if(ev.pointerType !== 'mouse'){
-        ev.preventDefault();
-      }
-    });
-    scrollToggleEl.addEventListener('pointermove', handleScrollPointerMove);
-    scrollToggleEl.addEventListener('pointerup', handleScrollPointerUp);
-    scrollToggleEl.addEventListener('pointercancel', handleScrollPointerUp);
-    scrollToggleEl.addEventListener('lostpointercapture', finishScrollDrag);
   }
-  const recModeRadios = Array.from(document.querySelectorAll('input[name=\"recMode\"]'));
-  const modeToggleEl = document.querySelector('.mode-toggle');
-  const modeSliderEl = modeToggleEl ? modeToggleEl.querySelector('.mode-toggle__slider') : null;
-  
-  const updateModeSlider = () => {
-    if (!modeToggleEl || !modeSliderEl) return;
-    const activeInput = modeToggleEl.querySelector('input[type="radio"]:checked');
-    if (!activeInput) return;
-    const activeLabel = modeToggleEl.querySelector(`label[for="${activeInput.id}"]`);
-    if (!activeLabel) return;
-    const modeRect = modeToggleEl.getBoundingClientRect();
-    const labelRect = activeLabel.getBoundingClientRect();
-    if (!labelRect.width) return;
-    const styles = getComputedStyle(modeToggleEl);
-    const paddingLeft = parseFloat(styles.paddingLeft) || 0;
-    const borderLeft = parseFloat(styles.borderLeftWidth) || 0;
-    const offset = labelRect.left - modeRect.left - borderLeft - paddingLeft;
-    modeToggleEl.style.setProperty('--mode-slider-offset', `${offset}px`);
-    modeToggleEl.style.setProperty('--mode-slider-width', `${labelRect.width}px`);
-  };
-  if (modeToggleEl && modeSliderEl) {
-    const scheduleModeSlider = () => requestAnimationFrame(updateModeSlider);
-    scheduleModeSlider();
-    recModeRadios.forEach(input => {
-      input.addEventListener('change', scheduleModeSlider);
-      input.addEventListener('focus', scheduleModeSlider);
-    });
-    window.addEventListener('resize', scheduleModeSlider);
-    
-    // Draggable mode toggle with pointer tracking (same as language)
-    const modeOptions = Array.from(modeToggleEl.querySelectorAll('.mode-toggle__option'));
-    const modeDragState = { active:false, pointerId:null, rect:null, paddingLeft:0, paddingRight:0, borderLeft:0, borderRight:0, hover:null };
 
-    const ensureModeMetrics = () => {
-      modeDragState.rect = modeToggleEl.getBoundingClientRect();
-      const styles = getComputedStyle(modeToggleEl);
-      modeDragState.paddingLeft = parseFloat(styles.paddingLeft) || 0;
-      modeDragState.paddingRight = parseFloat(styles.paddingRight) || 0;
-      modeDragState.borderLeft = parseFloat(styles.borderLeftWidth) || 0;
-      modeDragState.borderRight = parseFloat(styles.borderRightWidth) || 0;
-    };
-
-    const commitModeOption = (label) => {
-      if(!label) return;
-      const id = label.getAttribute('for');
-      if(!id) return;
-      const input = modeToggleEl.querySelector(`#${id}`);
-      if(input && !input.checked){
-        input.checked = true;
-        input.dispatchEvent(new Event('change', {bubbles: true}));
-      }
-    };
-
-    const updateModeDragVisual = (clientX, commit = false) => {
-      if(!modeDragState.rect) ensureModeMetrics();
-      const { rect, paddingLeft, paddingRight, borderLeft, borderRight } = modeDragState;
-      if(!rect) return;
-      const innerWidth = rect.width - paddingLeft - paddingRight - borderLeft - borderRight;
-      if(innerWidth <= 0) return;
-      let x = clientX - rect.left - borderLeft - paddingLeft;
-      x = Math.max(0, Math.min(innerWidth, x));
-      let closestLabel = null;
-      let minDist = Infinity;
-      modeOptions.forEach(label => {
-        const optionRect = label.getBoundingClientRect();
-        const center = optionRect.left - rect.left - borderLeft - paddingLeft + optionRect.width / 2;
-        const dist = Math.abs(center - x);
-        if(dist < minDist){
-          minDist = dist;
-          closestLabel = label;
-        }
-      });
-      if(!closestLabel) return;
-      if(modeDragState.hover && modeDragState.hover !== closestLabel){
-        modeDragState.hover.classList.remove('is-hovered');
-      }
-      closestLabel.classList.add('is-hovered');
-      modeDragState.hover = closestLabel;
-      const optionRect = closestLabel.getBoundingClientRect();
-      const sliderWidth = optionRect.width;
-      const maxOffset = Math.max(0, innerWidth - sliderWidth);
-      const offset = Math.max(0, Math.min(x - sliderWidth / 2, maxOffset));
-      modeToggleEl.style.setProperty('--mode-slider-width', `${sliderWidth}px`);
-      modeToggleEl.style.setProperty('--mode-slider-offset', `${offset}px`);
-      if(commit){
-        commitModeOption(closestLabel);
-        requestAnimationFrame(updateModeSlider);
-      }
-    };
-
-    const finishModeDrag = () => {
-      if(modeDragState.pointerId !== null){
-        try{ modeToggleEl.releasePointerCapture(modeDragState.pointerId); }catch(_err){}
-      }
-      modeDragState.pointerId = null;
-      modeDragState.active = false;
-      modeToggleEl.classList.remove('mode-toggle--dragging');
-      if(modeDragState.hover){
-        modeDragState.hover.classList.remove('is-hovered');
-        modeDragState.hover = null;
-      }
-      modeDragState.rect = null;
-      requestAnimationFrame(updateModeSlider);
-    };
-
-    const handleModePointerMove = (ev) => {
-      if(!modeDragState.active || (modeDragState.pointerId !== null && ev.pointerId !== modeDragState.pointerId)) return;
-      updateModeDragVisual(ev.clientX, false);
-    };
-
-    const handleModePointerUp = (ev) => {
-      if(!modeDragState.active || (modeDragState.pointerId !== null && ev.pointerId !== modeDragState.pointerId)) return;
-      updateModeDragVisual(ev.clientX, true);
-      if(modeSliderEl){
-        modeSliderEl.style.transform = '';
-      }
-      finishModeDrag();
-    };
-
-    modeToggleEl.addEventListener('pointerdown', (ev) => {
-      if(ev.pointerType === 'mouse' && ev.button !== 0) return;
-      const optionLabel = ev.target.closest('label.mode-toggle__option');
-      if(ev.pointerType === 'mouse' && optionLabel && modeToggleEl.contains(optionLabel)){
-        return;
-      }
-      ensureModeMetrics();
-      modeDragState.active = true;
-      modeDragState.pointerId = ev.pointerId;
-      modeToggleEl.classList.add('mode-toggle--dragging');
-      try{ modeToggleEl.setPointerCapture(ev.pointerId); }catch(_err){}
-      updateModeDragVisual(ev.clientX, false);
-      if(ev.pointerType !== 'mouse'){
-        ev.preventDefault();
-      }
-    });
-    modeToggleEl.addEventListener('pointermove', handleModePointerMove);
-    modeToggleEl.addEventListener('pointerup', handleModePointerUp);
-    modeToggleEl.addEventListener('pointercancel', handleModePointerUp);
-    modeToggleEl.addEventListener('lostpointercapture', finishModeDrag);
+  if (scrollToggleEl && scrollSliderEl) {
+    const scrollOptions = Array.from(scrollToggleEl.querySelectorAll('.scroll-toggle__option'));
+    createDraggableToggle(
+      scrollToggleEl,
+      scrollSliderEl,
+      scrollOptions,
+      scrollModeRadios,
+      scrollSlider?.updateSlider,
+      '--scroll-slider-offset',
+      '--scroll-slider-width'
+    );
   }
 
   function updateProgressIndicator(){
