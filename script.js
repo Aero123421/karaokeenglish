@@ -1135,10 +1135,10 @@
     lastTranscriptTimestamp = Date.now();
     scheduleIdleGuard();
 
-    // Initialize AudioContext voice detection for speed mode
-    if (recognitionMode === 'speed') {
-      initAudioDetection();
-    }
+    // AudioContext無効化（正確モードと同じにするため）
+    // if (recognitionMode === 'speed') {
+    //   initAudioDetection();
+    // }
 
     const modePrefix = recognitionMode === 'speed' ? '【高速】' : '【正確】';
     if(recognitionSession.fromRestart){
@@ -1220,9 +1220,7 @@
     }
 
     if(recognitionMode === 'speed'){
-      // 高速モード：正確モードと同じアルゴリズムを使用（高速！）
-      // 暫定結果 → 透明ハイライトのみ（即座に反応）
-      // 確定結果 → 色判定
+      // 高速モード：正確モードと完全に同じ処理
       if(norm === lastSpeedNorm && !hasFinal){
         recStatus.textContent = '聞き取り中: ' + transcript;
         return;
@@ -1233,39 +1231,32 @@
         return;
       }
 
-      // 正確モードと同じマッチングアルゴリズム
+      // 正確モードと完全に同じアルゴリズム
       let baseIndex = Math.max(currentWord, lastMicIndex);
       if(baseIndex < -1) baseIndex = -1;
       const lookAhead = hasFinal ? 22 : 14;
       const targetIndex = findNextWordIndex(parts, baseIndex, lookAhead);
-
       if(targetIndex !== -1 && (targetIndex >= currentWord || hasFinal || currentWord === -1)){
-        if(!hasFinal){
-          // 暫定結果：透明ハイライト（速度優先）
-          highlightTo(targetIndex, { tentative: true });
-        }else{
-          // 確定結果：色判定
-          highlightTo(targetIndex, { outcome: 'match', confidence: smoothedConfidence });
-        }
+        highlightTo(targetIndex, { outcome: 'match', confidence: smoothedConfidence });
       }else{
         unmatchedCount++;
-        const needsRecovery = hasFinal || unmatchedCount >= 2;
+        const needsRecovery = hasFinal || unmatchedCount >= 2 || pendingGap;
         if(needsRecovery){
           const globalIndex = findBestGlobalMatch(parts, Math.max(currentWord, lastMicIndex));
           if(globalIndex !== -1 && (globalIndex >= currentWord || currentWord === -1)){
-            if(!hasFinal){
-              // 暫定結果：透明ハイライト
-              highlightTo(globalIndex, { tentative: true });
-            }else{
-              // 確定結果：色判定
-              highlightTo(globalIndex, { outcome: 'match', confidence: smoothedConfidence });
-            }
+            highlightTo(globalIndex, { outcome: 'match', confidence: smoothedConfidence });
           }else if(hasFinal && normalizedWords.length){
             const softAdvance = Math.min((currentWord === -1 ? 0 : currentWord + 1), normalizedWords.length - 1);
             if(softAdvance > currentWord){
               highlightTo(softAdvance, { outcome: 'skip', markSkipped:false, confidence: smoothedConfidence });
+            }else{
+              pendingGap = true;
             }
+          }else{
+            pendingGap = true;
           }
+        }else{
+          pendingGap = true;
         }
       }
 
