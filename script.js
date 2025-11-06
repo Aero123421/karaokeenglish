@@ -18,6 +18,181 @@
     };
   };
 
+  // ====== Confidence-Based Highlighting System ======
+  class ConfidenceBasedHighlighter {
+    constructor() {
+      this.confidenceLevels = {
+        veryLow:    { min: 0.0,  max: 0.3,  opacity: 0.3,  blur: 4,  color: '#888888' },
+        low:        { min: 0.3,  max: 0.5,  opacity: 0.5,  blur: 2,  color: '#999999' },
+        medium:     { min: 0.5,  max: 0.7,  opacity: 0.7,  blur: 1,  color: '#ffaa00' },
+        high:       { min: 0.7,  max: 0.9,  opacity: 0.85, blur: 0.5, color: '#00ff00' },
+        veryHigh:   { min: 0.9,  max: 1.0,  opacity: 1.0,  blur: 0,   color: '#00ff00' }
+      };
+    }
+
+    getConfidenceLevel(confidence) {
+      for (const [key, level] of Object.entries(this.confidenceLevels)) {
+        if (confidence >= level.min && confidence < level.max) {
+          return level;
+        }
+      }
+      return this.confidenceLevels.veryHigh;
+    }
+
+    applyConfidenceStyle(element, confidence) {
+      const level = this.getConfidenceLevel(confidence);
+
+      // GPU加速プロパティのみ使用
+      element.style.transform = 'translateZ(0)';
+      element.style.willChange = 'opacity, filter, transform';
+
+      // CSSカスタムプロパティで動的更新
+      element.style.setProperty('--confidence-opacity', level.opacity);
+      element.style.setProperty('--confidence-blur', `${level.blur}px`);
+      element.style.setProperty('--confidence-color', level.color);
+
+      // GPU加速されたトランジション
+      element.style.transition = 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+
+      // データ属性で信頼度レベルを設定
+      if (confidence < 0.5) {
+        element.setAttribute('data-confidence', 'low');
+      } else if (confidence >= 0.7) {
+        element.setAttribute('data-confidence', 'high');
+      } else {
+        element.setAttribute('data-confidence', 'medium');
+      }
+    }
+  }
+
+  // ====== GPU Optimized Animator ======
+  class GPUOptimizedAnimator {
+    constructor() {
+      this.animationFrameId = null;
+    }
+
+    // コンポジットレイヤーを強制的に作成
+    forceGPULayer(element) {
+      element.style.transform = 'translateZ(0)';
+      element.style.willChange = 'transform, opacity';
+      element.style.backfaceVisibility = 'hidden';
+    }
+
+    // バッチ処理でリフローを最小化
+    batchUpdate(elements, updates) {
+      // すべての読み取り操作を先に実行
+      const measurements = elements.map(el => ({
+        element: el,
+        rect: el.getBoundingClientRect(),
+        computed: window.getComputedStyle(el)
+      }));
+
+      // FastDOMパターン: 書き込みをrAFでバッチ化
+      requestAnimationFrame(() => {
+        measurements.forEach((item, index) => {
+          const update = updates[index];
+          if (!update) return;
+          // transformとopacityのみ変更（リフロー回避）
+          if (update.transform) item.element.style.transform = update.transform;
+          if (update.opacity !== undefined) item.element.style.opacity = update.opacity;
+        });
+      });
+    }
+  }
+
+  // ====== Confidence Interpolator ======
+  class ConfidenceInterpolator {
+    constructor() {
+      this.history = [];
+      this.maxHistorySize = 10;
+    }
+
+    // 移動平均で信頼度を平滑化
+    smoothConfidence(currentConfidence) {
+      this.history.push(currentConfidence);
+      if (this.history.length > this.maxHistorySize) {
+        this.history.shift();
+      }
+
+      const avg = this.history.reduce((a, b) => a + b, 0) / this.history.length;
+      return avg;
+    }
+
+    // カルマンフィルタで予測
+    predictNextConfidence(observations) {
+      if (!observations || observations.length === 0) return 0.5;
+
+      let estimate = observations[0];
+      let uncertainty = 1.0;
+      const processNoise = 0.01;
+      const measurementNoise = 0.1;
+
+      for (const observation of observations) {
+        // 予測ステップ
+        uncertainty += processNoise;
+
+        // 更新ステップ
+        const gain = uncertainty / (uncertainty + measurementNoise);
+        estimate = estimate + gain * (observation - estimate);
+        uncertainty = (1 - gain) * uncertainty;
+      }
+
+      return estimate;
+    }
+
+    // 視覚的に違和感のない補間
+    interpolateVisualFeedback(prevState, currentState, confidence) {
+      const interpolationFactor = Math.min(confidence, 0.8);
+
+      return {
+        opacity: this.lerp(prevState.opacity, currentState.opacity, interpolationFactor),
+        scale: this.lerp(prevState.scale, currentState.scale, interpolationFactor),
+        blur: this.lerp(prevState.blur, currentState.blur, interpolationFactor)
+      };
+    }
+
+    lerp(start, end, factor) {
+      return start + (end - start) * factor;
+    }
+
+    reset() {
+      this.history = [];
+    }
+  }
+
+  // ====== Lightweight Timing Generator ======
+  class LightweightTimingGenerator {
+    constructor() {
+      this.audioContext = null;
+      try {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) {
+        console.warn('AudioContext not available', e);
+      }
+    }
+
+    // シンプルな均等配分アルゴリズム
+    mapWordsToTimings(words, duration) {
+      const avgWordDuration = duration / words.length;
+      const timings = [];
+
+      words.forEach((word, index) => {
+        timings.push({
+          word: word,
+          start: index * avgWordDuration,
+          end: (index + 1) * avgWordDuration,
+          confidence: 0.7 // 初期信頼度
+        });
+      });
+
+      return timings;
+    }
+
+    getCurrentTime() {
+      return this.audioContext ? this.audioContext.currentTime : Date.now() / 1000;
+    }
+  }
+
   // ====== DOM Elements Cache ======
   const textInput = document.getElementById('textInput');
   const reader = document.getElementById('reader');
@@ -358,6 +533,12 @@
   let lastSpeedNorm = '';
   let speedState = { history: [], map: [], lastReliable: -1, anchor: -1, missCount: 0, stability: 0, lastInputTs: 0, lastEmitTs: 0 };
 
+  // ====== Lightweight Processing Algorithm Instances ======
+  const confidenceHighlighter = new ConfidenceBasedHighlighter();
+  const gpuAnimator = new GPUOptimizedAnimator();
+  const confidenceInterpolator = new ConfidenceInterpolator();
+  const timingGenerator = new LightweightTimingGenerator();
+
   // ====== ユーティリティ ======
   function normalizeForMatch(str){
     try{
@@ -418,6 +599,8 @@
     }
     spans.forEach((span, idx)=>{
       applySpanState(span, wordStates[idx] || 'pending');
+      // GPU最適化を全単語に適用
+      gpuAnimator.forceGPULayer(span);
     });
     currentWord = -1;
     lastMicIndex = -1;
@@ -466,6 +649,7 @@
 
   function resetSpeedState(){
     speedState = { history: [], map: [], lastReliable: -1, anchor: -1, missCount: 0, stability: 0, lastInputTs: 0, lastEmitTs: 0 };
+    confidenceInterpolator.reset();
     updateRealtimeTelemetry();
   }
 
@@ -787,7 +971,7 @@
   }
 
   function highlightTo(index, options = {}){
-    const { manual = false, outcome = 'match', markSkipped = true } = options;
+    const { manual = false, outcome = 'match', markSkipped = true, confidence = 0.7 } = options;
     const wordSpans = getWordSpans();
     if(outcome === 'rollback' && !manual){
       rewindHighlight(index);
@@ -807,6 +991,9 @@
         }
         updateWordState(index, 'matched', wordSpans);
         speedState.lastReliable = Math.max(speedState.lastReliable, index);
+
+        // 信頼度に基づいたスタイルを適用
+        confidenceHighlighter.applyConfidenceStyle(wordSpans[index], confidence);
       }else if(outcome === 'skip'){
         if(markSkipped){
           const from = prev < index ? prev + 1 : index;
@@ -1086,18 +1273,35 @@
     scheduleIdleGuard();
     let transcript = '';
     let hasFinal = false;
+    let totalConfidence = 0;
+    let confidenceCount = 0;
+
+    // 信頼度を取得
     for(let i=ev.resultIndex; i<ev.results.length; i++){
       transcript += ev.results[i][0].transcript;
       if(ev.results[i].isFinal) hasFinal = true;
+
+      // confidence値を収集
+      if(ev.results[i][0].confidence !== undefined) {
+        totalConfidence += ev.results[i][0].confidence;
+        confidenceCount++;
+      }
     }
+
+    // 平均信頼度を計算
+    const rawConfidence = confidenceCount > 0 ? totalConfidence / confidenceCount : 0.5;
+
+    // 信頼度補間システムで平滑化
+    const smoothedConfidence = confidenceInterpolator.smoothConfidence(rawConfidence);
+
     const norm = normalizeForMatch(transcript);
     if(!norm){
-      recStatus.textContent = '聞き取り中: ' + transcript;
+      recStatus.textContent = '聞き取り中: ' + transcript + ` (信頼度: ${(smoothedConfidence * 100).toFixed(0)}%)`;
       return;
     }
     const parts = norm.split(' ').filter(Boolean);
     if(parts.length === 0){
-      recStatus.textContent = '聞き取り中: ' + transcript;
+      recStatus.textContent = '聞き取り中: ' + transcript + ` (信頼度: ${(smoothedConfidence * 100).toFixed(0)}%)`;
       return;
     }
 
@@ -1127,18 +1331,18 @@
     const lookAhead = hasFinal ? 22 : 14;
     const targetIndex = findNextWordIndex(parts, baseIndex, lookAhead);
     if(targetIndex !== -1 && (targetIndex >= currentWord || hasFinal || currentWord === -1)){
-      highlightTo(targetIndex, { outcome: 'match' });
+      highlightTo(targetIndex, { outcome: 'match', confidence: smoothedConfidence });
     }else{
       unmatchedCount++;
       const needsRecovery = hasFinal || unmatchedCount >= 2 || pendingGap;
       if(needsRecovery){
         const globalIndex = findBestGlobalMatch(parts, Math.max(currentWord, lastMicIndex));
         if(globalIndex !== -1 && (globalIndex >= currentWord || currentWord === -1)){
-          highlightTo(globalIndex, { outcome: 'match' });
+          highlightTo(globalIndex, { outcome: 'match', confidence: smoothedConfidence });
         }else if(hasFinal && normalizedWords.length){
           const softAdvance = Math.min((currentWord === -1 ? 0 : currentWord + 1), normalizedWords.length - 1);
           if(softAdvance > currentWord){
-            highlightTo(softAdvance, { outcome: 'skip', markSkipped:false });
+            highlightTo(softAdvance, { outcome: 'skip', markSkipped:false, confidence: smoothedConfidence });
           }else{
             pendingGap = true;
           }
@@ -1150,7 +1354,7 @@
       }
     }
 
-    recStatus.textContent = (hasFinal ? '認識: ' : '聞き取り中: ') + transcript;
+    recStatus.textContent = (hasFinal ? '認識: ' : '聞き取り中: ') + transcript + ` (信頼度: ${(smoothedConfidence * 100).toFixed(0)}%)`;
   }
   function micStop(){
     userStopRequested = true;
@@ -1164,6 +1368,7 @@
     lastSpeedNorm = '';
     pendingGap = false;
     unmatchedCount = 0;
+    confidenceInterpolator.reset();
     resetSpeedState();
     updateRealtimeTelemetry();
   }

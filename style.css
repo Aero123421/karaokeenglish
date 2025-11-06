@@ -876,6 +876,12 @@
       isolation:isolate;
       transition:color .2s ease;
       will-change:color;
+      /* GPU acceleration - forced composite layer */
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      /* Confidence-based properties */
+      opacity: var(--confidence-opacity, 1);
+      filter: blur(var(--confidence-blur, 0px));
     }
     .word::before{
       content:'';
@@ -960,6 +966,26 @@
         rgba(211, 47, 47, 0.25) 100%);
       border: 1px solid rgba(244, 67, 54, 0.45);
       box-shadow: 0 4px 16px rgba(244, 67, 54, 0.28);
+    }
+
+    /* Confidence-based visual feedback */
+    .word[data-confidence="low"] {
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    }
+
+    .word[data-confidence="high"] {
+      text-shadow:
+        0 0 20px var(--confidence-color, currentColor),
+        0 0 40px var(--confidence-color, currentColor);
+    }
+
+    /* Smooth transitions for confidence changes */
+    .word {
+      transition:
+        color 0.2s ease,
+        opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        filter 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     @supports (-webkit-touch-callout: none){
       .word::before,
