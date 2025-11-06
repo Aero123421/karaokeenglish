@@ -22,11 +22,11 @@
   class ConfidenceBasedHighlighter {
     constructor() {
       this.confidenceLevels = {
-        veryLow:    { min: 0.0,  max: 0.3,  opacity: 0.3,  blur: 4,  color: '#888888' },
-        low:        { min: 0.3,  max: 0.5,  opacity: 0.5,  blur: 2,  color: '#999999' },
-        medium:     { min: 0.5,  max: 0.7,  opacity: 0.7,  blur: 1,  color: '#ffaa00' },
-        high:       { min: 0.7,  max: 0.9,  opacity: 0.85, blur: 0.5, color: '#00ff00' },
-        veryHigh:   { min: 0.9,  max: 1.0,  opacity: 1.0,  blur: 0,   color: '#00ff00' }
+        veryLow:    { min: 0.0,  max: 0.3,  opacity: 0.5,  color: '#888888' },
+        low:        { min: 0.3,  max: 0.5,  opacity: 0.7,  color: '#999999' },
+        medium:     { min: 0.5,  max: 0.7,  opacity: 0.85, color: '#ffaa00' },
+        high:       { min: 0.7,  max: 0.9,  opacity: 0.95, color: '#00ff00' },
+        veryHigh:   { min: 0.9,  max: 1.0,  opacity: 1.0,  color: '#00ff00' }
       };
     }
 
@@ -42,13 +42,12 @@
     applyConfidenceStyle(element, confidence) {
       const level = this.getConfidenceLevel(confidence);
 
-      // GPU加速プロパティのみ使用
+      // GPU加速プロパティのみ使用（ぼかしなし）
       element.style.transform = 'translateZ(0)';
-      element.style.willChange = 'opacity, filter, transform';
+      element.style.willChange = 'opacity, transform';
 
-      // CSSカスタムプロパティで動的更新
+      // CSSカスタムプロパティで動的更新（ぼかしを削除）
       element.style.setProperty('--confidence-opacity', level.opacity);
-      element.style.setProperty('--confidence-blur', `${level.blur}px`);
       element.style.setProperty('--confidence-color', level.color);
 
       // GPU加速されたトランジション
@@ -869,7 +868,12 @@
     let prefix = 0;
     while(prefix < maxPrefix && prevHistory[prefix] === parts[prefix]) prefix++;
 
-    if(prefix < prevHistory.length){
+    // 巻き戻しを最小化：確定結果でかつ大幅な不一致の場合のみ
+    // 暫定結果では巻き戻しを行わない（前方進行のみ）
+    const shouldRollback = hasFinal && prefix < prevHistory.length && prefix < prevHistory.length * 0.3;
+
+    if(shouldRollback){
+      // 確定結果で30%以下しか一致しない場合のみ巻き戻し
       const rollbackIndex = prefix > 0 ? prevMap[prefix - 1] : -1;
       highlightTo(rollbackIndex, { outcome:'rollback' });
       speedState.anchor = rollbackIndex;
@@ -878,6 +882,7 @@
       speedState.map = prevMap.slice(0, prefix);
       speedState.history = prevHistory.slice(0, prefix);
     }else{
+      // 巻き戻しせずに前方進行を継続
       speedState.map = prevMap.slice(0, prefix);
       speedState.history = prevHistory.slice(0, prefix);
     }
@@ -903,30 +908,37 @@
       const tail = parts.slice(tailStart, idx + 1);
       const candidate = findRealtimeCandidate(tail, anchor, { hasFinal, windowAhead });
       if(candidate){
-        const strongThreshold = hasFinal ? 1.05 : 1.35;
-        const softThreshold = hasFinal ? 0.85 : 1.1;
-        let outcome = 'match';
-        let markSkipped = candidate.quality >= strongThreshold;
-        if(candidate.quality < softThreshold){
-          outcome = 'skip';
-          markSkipped = false;
+        // 前方進行のみを許可：現在位置より後ろのみ
+        if(candidate.index > anchor || (anchor === -1 && candidate.index >= 0)){
+          const strongThreshold = hasFinal ? 1.05 : 1.35;
+          const softThreshold = hasFinal ? 0.85 : 1.1;
+          let outcome = 'match';
+          let markSkipped = candidate.quality >= strongThreshold;
+          if(candidate.quality < softThreshold){
+            outcome = 'skip';
+            markSkipped = false;
+          }
+          highlightTo(candidate.index, { outcome, markSkipped });
+          speedState.map[idx] = candidate.index;
+          anchor = candidate.index;
+          speedState.anchor = anchor;
+          speedState.lastReliable = Math.max(speedState.lastReliable, candidate.index);
+          speedState.missCount = 0;
+          const commitTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+          speedState.lastEmitTs = commitTime;
+          const stabilityBoost = outcome === 'match' ? (markSkipped ? 0.5 : 0.35) : 0.25;
+          speedState.stability = Math.min(1, speedState.stability * 0.55 + stabilityBoost);
+          updateRealtimeTelemetry();
+        }else{
+          // 後退するマッチングは無視（前方進行優先）
+          speedState.map[idx] = -1;
         }
-        highlightTo(candidate.index, { outcome, markSkipped });
-        speedState.map[idx] = candidate.index;
-        anchor = candidate.index;
-        speedState.anchor = anchor;
-        speedState.lastReliable = Math.max(speedState.lastReliable, candidate.index);
-        speedState.missCount = 0;
-        const commitTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-        speedState.lastEmitTs = commitTime;
-        const stabilityBoost = outcome === 'match' ? (markSkipped ? 0.5 : 0.35) : 0.25;
-        speedState.stability = Math.min(1, speedState.stability * 0.55 + stabilityBoost);
-        updateRealtimeTelemetry();
       }else{
         speedState.map[idx] = -1;
         speedState.missCount = (speedState.missCount || 0) + 1;
         speedState.stability = Math.max(0, speedState.stability * 0.6 - 0.12);
-        if(speedState.missCount >= (hasFinal ? 2 : 3)){
+        // 暫定結果ではフォールバックを緩く、確定結果では厳しく
+        if(speedState.missCount >= (hasFinal ? 3 : 5)){
           fallbackNeeded = true;
           break;
         }
@@ -946,7 +958,8 @@
       const tailParts = parts.slice(-tailLimit);
       const baseIndex = Math.max(anchor, speedState.lastReliable, currentWord);
       const alignment = alignSpeedWindow(tailParts, baseIndex, hasFinal);
-      if(alignment && typeof alignment.bestIndex === 'number' && alignment.bestIndex !== -1 && alignment.bestIndex >= anchor){
+      // フォールバックも前方進行のみ：現在位置より後ろのみ許可
+      if(alignment && typeof alignment.bestIndex === 'number' && alignment.bestIndex > anchor){
         highlightTo(alignment.bestIndex, { outcome:'match' });
         speedState.anchor = alignment.bestIndex;
         speedState.lastReliable = alignment.bestIndex;
