@@ -1208,18 +1208,34 @@
   const themeToggle = document.getElementById('themeToggle');
   const themeIcon = document.getElementById('themeIcon');
   const themeText = document.getElementById('themeText');
-  
+
   function setTheme(theme) {
-    if (theme === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      themeIcon.textContent = '☀️';
-      themeText.textContent = 'ライトモード';
-      localStorage.setItem('theme', 'dark');
+    const applyTheme = () => {
+      if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeIcon.textContent = '☀️';
+        themeText.textContent = 'ライトモード';
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        themeIcon.textContent = '🌙';
+        themeText.textContent = 'ダークモード';
+        localStorage.setItem('theme', 'light');
+      }
+    };
+
+    // View Transitions API対応ブラウザならスムーズアニメーション
+    if (document.startViewTransition) {
+      document.startViewTransition(() => applyTheme());
     } else {
-      document.documentElement.removeAttribute('data-theme');
-      themeIcon.textContent = '🌙';
-      themeText.textContent = 'ダークモード';
-      localStorage.setItem('theme', 'light');
+      // フォールバック: トランジション無効化で即座に切り替え
+      document.documentElement.classList.add('theme-switching');
+      applyTheme();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.documentElement.classList.remove('theme-switching');
+        });
+      });
     }
   }
   

@@ -67,6 +67,20 @@
       --pending-text: rgba(245, 245, 245, 0.48);
       --drag-shadow: 0 20px 48px rgba(0, 0, 0, 0.68);
     }
+
+    /* テーマ切り替え時のトランジション無効化（パフォーマンス最適化） */
+    .theme-switching,
+    .theme-switching * {
+      transition: none !important;
+    }
+
+    /* View Transitions API - スムーズなテーマ切り替えアニメーション */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation-duration: 0.3s;
+      animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     *{box-sizing:border-box}
     html,body{height:100%; min-height:100vh}
     body{
