@@ -95,48 +95,96 @@
     header{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px}
     header h1{font-size:24px; font-weight:600; margin:0; letter-spacing:.01em; text-shadow: 0 2px 10px rgba(0,0,0,0.08)}
     header .sub{color:var(--muted); font-size:13px; margin-top:4px}
+    /* ====== Glassmorphism Theme Toggle with Lens Distortion ====== */
     .theme-toggle{
       cursor: pointer;
       background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.15) 0%,
-        rgba(255, 255, 255, 0.05) 100%);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 50px;
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0.08) 100%);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 52% 48% 50% 50% / 48% 52% 48% 52%; /* レンズの歪み */
       padding: 8px 16px;
       display: inline-flex;
       align-items: center;
       gap: 8px;
       font-size: 14px;
       color: var(--ink);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-      will-change: transform;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow:
+        0 8px 32px 0 rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.05);
+      will-change: transform, filter;
+      position: relative;
+      overflow: hidden;
+    }
+    .theme-toggle::before{
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.25) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .theme-toggle::after{
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+      transform: translate(-50%, -50%) scale(0);
+      transition: width 0.6s ease, height 0.6s ease, transform 0.6s ease;
     }
     [data-theme="dark"] .theme-toggle{
       background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.08) 0%,
-        rgba(255, 255, 255, 0.02) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(255, 255, 255, 0.04) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow:
+        0 8px 32px 0 rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.3);
     }
     .theme-toggle:hover{
       background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.2) 0%,
-        rgba(255, 255, 255, 0.08) 100%);
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        rgba(255, 255, 255, 0.25) 0%,
+        rgba(255, 255, 255, 0.12) 100%);
+      transform: translateY(-3px) scale(1.03) perspective(400px) rotateX(2deg);
+      box-shadow:
+        0 12px 40px 0 rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.08);
+      filter: brightness(1.08) saturate(1.1);
+      border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%; /* hover時に歪み変化 */
+    }
+    .theme-toggle:hover::before{
+      opacity: 1;
     }
     .theme-toggle:active{
-      transform: translateY(0) scale(0.98);
-      box-shadow: 
-        0 4px 16px rgba(0, 0, 0, 0.15),
+      transform: translateY(0) scale(0.96) perspective(400px) rotateX(-2deg) skewX(1deg);
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.2),
         inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
-        inset 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+        inset 0 4px 12px 0 rgba(0, 0, 0, 0.12);
+      filter: brightness(0.95) contrast(1.05);
+      border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%; /* クリック時は正円に */
+    }
+    .theme-toggle:active::after{
+      width: 200px;
+      height: 200px;
+      transform: translate(-50%, -50%) scale(1);
+      transition: width 0s, height 0s, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .theme-toggle-icon{
       font-size: 18px;
+      position: relative;
+      z-index: 1;
     }
 
     .layout{display:flex; flex-direction:column; gap:18px; align-items:stretch}
@@ -233,6 +281,7 @@
       transform: translateY(-2px);
     }
 
+    /* ====== Glassmorphism Control Buttons with Lens Distortion ====== */
     .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
     .controls button{
       cursor:pointer;
@@ -242,86 +291,98 @@
       gap:6px;
       padding:0 20px;
       appearance:none;
-      border-radius:var(--control-radius);
-      border:1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 45% 55% 50% 50% / 55% 45% 55% 45%; /* レンズの歪み */
+      border:1px solid rgba(255, 255, 255, 0.35);
       background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.15) 0%,
-        rgba(255, 255, 255, 0.05) 100%);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0.08) 100%);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
       color:var(--ink);
       height:40px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-      transition:transform .2s ease, box-shadow .2s ease;
+      box-shadow:
+        0 8px 32px 0 rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.05);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       font-weight: 500;
       font-size:14px;
       position: relative;
       overflow: hidden;
-      will-change: transform;
+      will-change: transform, filter;
     }
     .controls button::before{
       content:'';
       position:absolute;
       inset:0;
-      background: radial-gradient(circle at center, rgba(255,255,255,0.3) 0%, transparent 70%);
+      border-radius: inherit;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 0%, transparent 65%);
       opacity:0;
-      transform:scale(0);
-      transition:transform .5s ease, opacity .5s ease;
+      transition:opacity .3s ease;
     }
     .controls button::after{
       content:'';
       position:absolute;
-      inset:-2px;
-      background: inherit;
-      filter: blur(20px);
-      opacity:0;
-      z-index:-1;
-      transition:opacity .3s ease;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 0%, transparent 70%);
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
+      transition: width 0.6s ease, height 0.6s ease, transform 0.6s ease, opacity 0.6s ease;
+      pointer-events: none;
     }
     [data-theme="dark"] .controls button{
-      background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.08) 0%, 
-        rgba(255, 255, 255, 0.02) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 
+      background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(255, 255, 255, 0.04) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow:
         0 8px 32px 0 rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
-        inset 0 -1px 0 0 rgba(0, 0, 0, 0.2);
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.3);
     }
     .controls button:hover{
-      transform:translateY(-2px) scale(1.02);
+      transform: translateY(-3px) scale(1.03) perspective(400px) rotateX(2deg);
       box-shadow:
         0 12px 40px 0 rgba(0, 0, 0, 0.15),
         inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
         inset 0 -1px 0 0 rgba(0, 0, 0, 0.08);
-      background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.2) 0%, 
-        rgba(255, 255, 255, 0.08) 100%);
-      filter: brightness(1.05);
+      background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.25) 0%,
+        rgba(255, 255, 255, 0.12) 100%);
+      filter: brightness(1.08) saturate(1.1);
+      border-radius: 55% 45% 50% 50% / 45% 55% 45% 55%; /* hover時に歪み変化 */
     }
-    .controls button:hover::after{
-      opacity:0.6;
+    .controls button:hover::before{
+      opacity:1;
     }
     .controls button:active{
-      transform:translateY(0) scale(0.96); 
+      transform: translateY(0) scale(0.96) perspective(400px) rotateX(-2deg) skewX(1deg);
       box-shadow:
-        0 4px 16px rgba(0, 0, 0, 0.15),
+        0 4px 16px rgba(0, 0, 0, 0.2),
         inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
-        inset 0 2px 8px 0 rgba(0, 0, 0, 0.08);
-      filter: brightness(0.95);
+        inset 0 4px 12px 0 rgba(0, 0, 0, 0.12);
+      filter: brightness(0.95) contrast(1.05);
+      border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%; /* クリック時は正円に */
     }
-    .controls button:active::before{
-      opacity:1;
-      transform:scale(2);
-      transition:transform .2s ease, opacity .2s ease;
+    .controls button:active::after{
+      width: 200px;
+      height: 200px;
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      transition: width 0s, height 0s, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0s;
     }
     .controls button:disabled{
-      opacity:.55; 
-      cursor:not-allowed; 
-      transform:none; 
-      box-shadow: 
+      opacity:.55;
+      cursor:not-allowed;
+      transform:none;
+      box-shadow:
         inset 0 0 0 1px var(--surface-outline),
         0 2px 8px rgba(0, 0, 0, 0.05);
+      filter: grayscale(0.5);
     }
     .controls--options{
       display:flex;
