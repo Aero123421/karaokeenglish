@@ -11,31 +11,9 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- SVG Filters for glass lens distortion effects -->
+  <!-- SVG Filters -->
   <svg style="position: absolute; width: 0; height: 0;" aria-hidden="true">
     <defs>
-      <!-- Subtle lens distortion for buttons (normal state) -->
-      <filter id="glassLens" x="-50%" y="-50%" width="200%" height="200%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.015 0.015" numOctaves="3" result="noise" seed="5">
-          <animate attributeName="baseFrequency" values="0.015 0.015; 0.018 0.018; 0.015 0.015" dur="8s" repeatCount="indefinite" />
-        </feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-
-      <!-- Strong lens distortion for hover state -->
-      <filter id="glassLensHover" x="-50%" y="-50%" width="200%" height="200%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.02 0.02" numOctaves="4" result="noise" seed="7" />
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-
-      <!-- Very strong lens distortion for active/click state -->
-      <filter id="glassLensActive" x="-50%" y="-50%" width="200%" height="200%">
-        <feTurbulence type="turbulence" baseFrequency="0.03 0.03" numOctaves="5" result="noise" seed="9" />
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="15" xChannelSelector="R" yChannelSelector="G" />
-        <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" />
-      </filter>
-
-      <!-- Original filters -->
       <filter id="lensDistortion" x="-50%" y="-50%" width="200%" height="200%">
         <feTurbulence type="fractalNoise" baseFrequency="0.01 0.01" numOctaves="2" result="noise" seed="2" />
         <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" />
