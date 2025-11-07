@@ -159,39 +159,6 @@
     }
   }
 
-  // ====== Lightweight Timing Generator ======
-  class LightweightTimingGenerator {
-    constructor() {
-      this.audioContext = null;
-      try {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      } catch (e) {
-        console.warn('AudioContext not available', e);
-      }
-    }
-
-    // シンプルな均等配分アルゴリズム
-    mapWordsToTimings(words, duration) {
-      const avgWordDuration = duration / words.length;
-      const timings = [];
-
-      words.forEach((word, index) => {
-        timings.push({
-          word: word,
-          start: index * avgWordDuration,
-          end: (index + 1) * avgWordDuration,
-          confidence: 0.7 // 初期信頼度
-        });
-      });
-
-      return timings;
-    }
-
-    getCurrentTime() {
-      return this.audioContext ? this.audioContext.currentTime : Date.now() / 1000;
-    }
-  }
-
   // ====== DOM Elements Cache ======
   const textInput = document.getElementById('textInput');
   const reader = document.getElementById('reader');
@@ -492,19 +459,6 @@
     );
   }
 
-  function updateProgressIndicator(){
-    // Progress indicator removed for simplified UI
-  }
-
-  function updateRealtimeTelemetry(){
-    // Telemetry indicators removed for simplified UI
-  }
-
-  function updateSessionMeta(){
-    // Session meta pills removed for simplified UI
-  }
-
-
   // ====== 音声認識（読み上げなし） ======
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -532,18 +486,10 @@
   let lastSpeedNorm = '';
   let speedState = { history: [], map: [], lastReliable: -1, anchor: -1, missCount: 0, stability: 0, lastInputTs: 0, lastEmitTs: 0 };
 
-  // ====== AudioContext Voice Detection (Speed Mode) ======
-  let audioContext = null;
-  let audioAnalyzer = null;
-  let micStream = null;
-  let voiceDetectionInterval = null;
-  let lastVoiceDetectionIndex = -1;
-
   // ====== Lightweight Processing Algorithm Instances ======
   const confidenceHighlighter = new ConfidenceBasedHighlighter();
   const gpuAnimator = new GPUOptimizedAnimator();
   const confidenceInterpolator = new ConfidenceInterpolator();
-  const timingGenerator = new LightweightTimingGenerator();
 
   // ====== ユーティリティ ======
   function normalizeForMatch(str){
@@ -613,7 +559,6 @@
     lastMicIndex = -1;
     pendingGap = false;
     unmatchedCount = 0;
-    updateProgressIndicator();
   }
 
   function getWordSpans(){
@@ -666,14 +611,11 @@
       applySpanState(span, 'pending');
     });
     currentWord = -1;
-    updateProgressIndicator();
   }
 
   function resetSpeedState(){
     speedState = { history: [], map: [], lastReliable: -1, anchor: -1, missCount: 0, stability: 0, lastInputTs: 0, lastEmitTs: 0 };
     confidenceInterpolator.reset();
-    lastVoiceDetectionIndex = -1;  // AudioContext検知をリセット
-    updateRealtimeTelemetry();
   }
 
   function rewindHighlight(targetIndex){
@@ -700,7 +642,6 @@
         spans[clamped].scrollIntoView({block:'center', behavior:'smooth'});
       }
     }
-    updateProgressIndicator();
   }
 
   function wordIndexFromTokenIndex(tokenIdx){
@@ -761,7 +702,6 @@
       unmatchedCount = 0;
     }
 
-    updateProgressIndicator();
     if(autoScrollEnabled){ wordSpans[index].scrollIntoView({block:'center', behavior:'smooth'}); }
   }
 
@@ -799,88 +739,6 @@
       console.warn('Microphone permission request failed', err);
       return false;
     }
-  }
-
-  // ====== AudioContext Voice Activity Detection ======
-  async function initAudioDetection() {
-    try {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      audioAnalyzer = audioContext.createAnalyser();
-      audioAnalyzer.fftSize = 256;
-      audioAnalyzer.smoothingTimeConstant = 0.8;
-
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const source = audioContext.createMediaStreamSource(micStream);
-      source.connect(audioAnalyzer);
-
-      startVoiceDetection();
-    } catch (e) {
-      console.warn('AudioContext detection initialization failed', e);
-    }
-  }
-
-  function startVoiceDetection() {
-    if (voiceDetectionInterval) return;
-
-    const bufferLength = audioAnalyzer.fftSize;
-    const freqData = new Uint8Array(audioAnalyzer.frequencyBinCount);
-    const timeData = new Uint8Array(bufferLength);
-
-    voiceDetectionInterval = setInterval(() => {
-      if (!recognizing || recognitionMode !== 'speed') return;
-
-      // 周波数データ（エネルギー検出）
-      audioAnalyzer.getByteFrequencyData(freqData);
-
-      // 時間ドメインデータ（ゼロクロッシング検出）
-      audioAnalyzer.getByteTimeDomainData(timeData);
-
-      // RMS（Root Mean Square）計算：音声エネルギー
-      let sum = 0;
-      for(let i = 0; i < freqData.length; i++){
-        sum += freqData[i] * freqData[i];
-      }
-      const rms = Math.sqrt(sum / freqData.length);
-
-      // ゼロクロッシングレート計算：音声の変化速度
-      let zeroCrossings = 0;
-      for(let i = 1; i < timeData.length; i++){
-        if((timeData[i] >= 128 && timeData[i-1] < 128) ||
-           (timeData[i] < 128 && timeData[i-1] >= 128)){
-          zeroCrossings++;
-        }
-      }
-      const zcr = zeroCrossings / timeData.length;
-
-      // 音声検知：RMSが十分高く、ゼロクロッシングが適度（無音や雑音を除外）
-      const isVoice = rms > 25 && zcr > 0.02 && zcr < 0.5;
-
-      if (isVoice) {
-        const nextIndex = currentWord + 1;
-        if (nextIndex < normalizedWords.length && nextIndex !== lastVoiceDetectionIndex) {
-          // AudioContext detection → immediately advance transparent highlight to NEXT word
-          highlightTo(nextIndex, { tentative: true });
-          lastVoiceDetectionIndex = nextIndex;
-        }
-      }
-    }, 100); // Check every 100ms for responsive feel
-  }
-
-  function stopVoiceDetection() {
-    if (voiceDetectionInterval) {
-      clearInterval(voiceDetectionInterval);
-      voiceDetectionInterval = null;
-    }
-    if (micStream) {
-      micStream.getTracks().forEach(track => track.stop());
-      micStream = null;
-    }
-    if (audioContext && audioContext.state !== 'closed') {
-      audioContext.close();
-      audioContext = null;
-    }
-    audioAnalyzer = null;
-    lastVoiceDetectionIndex = -1;
   }
 
   function levenshtein(a,b){
@@ -1131,14 +989,8 @@
     resetSpeedState();
     speedState.lastReliable = currentWord;
     speedState.anchor = currentWord;
-    updateRealtimeTelemetry();
     lastTranscriptTimestamp = Date.now();
     scheduleIdleGuard();
-
-    // AudioContext無効化（正確モードと同じにするため）
-    // if (recognitionMode === 'speed') {
-    //   initAudioDetection();
-    // }
 
     const modePrefix = recognitionMode === 'speed' ? '【高速】' : '【正確】';
     if(recognitionSession.fromRestart){
@@ -1153,7 +1005,6 @@
   function handleRecognizerEnd(){
     recognizing = false;
     clearIdleGuard();
-    stopVoiceDetection(); // Stop AudioContext detection
     if(userStopRequested || !shouldAutoRestart){
       btnMicStart.disabled = false;
       btnMicStop.disabled = true;
@@ -1164,7 +1015,6 @@
       recStatus.textContent = userStopRequested ? '停止しました' : '待機中';
       userStopRequested = false;
       shouldAutoRestart = false;
-      updateRealtimeTelemetry();
       return;
     }
     clearRestartTimer();
@@ -1305,7 +1155,6 @@
     shouldAutoRestart = false;
     clearRestartTimer();
     clearIdleGuard();
-    stopVoiceDetection(); // Stop AudioContext detection
     if(recognizer){
       try{ recognizer.stop(); }catch(e){ console.warn(e); }
     }
@@ -1315,37 +1164,7 @@
     unmatchedCount = 0;
     confidenceInterpolator.reset();
     resetSpeedState();
-    updateRealtimeTelemetry();
   }
-
-  // ====== UI 追加: ショートカット ======
-
-  document.addEventListener('keydown', (e)=>{
-    if(e.key.toLowerCase() === 's'){ e.preventDefault(); recognizing ? micStop() : micStart(); }
-    
-    // Word navigation
-    if(e.key === 'ArrowRight' && !e.shiftKey){
-      e.preventDefault();
-      highlightTo(Math.min(currentWord+1, reader.querySelectorAll('.word').length-1), { manual:true });
-    }
-    if(e.key === 'ArrowLeft' && !e.shiftKey){
-      e.preventDefault();
-      highlightTo(Math.max(currentWord-1, 0), { manual:true });
-    }
-    
-    // Language navigation with Shift+Arrow
-    if(e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')){
-      e.preventDefault();
-      const currentIndex = recLangRadios.findIndex(r => r.checked);
-      if(e.key === 'ArrowLeft' && currentIndex > 0){
-        recLangRadios[currentIndex - 1].checked = true;
-        recLangRadios[currentIndex - 1].dispatchEvent(new Event('change', {bubbles: true}));
-      } else if(e.key === 'ArrowRight' && currentIndex < recLangRadios.length - 1){
-        recLangRadios[currentIndex + 1].checked = true;
-        recLangRadios[currentIndex + 1].dispatchEvent(new Event('change', {bubbles: true}));
-      }
-    }
-  });
 
   // ====== そのほか ======
   btnMicStart.addEventListener('click', micStart);
