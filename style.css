@@ -67,6 +67,13 @@
       --pending-text: rgba(245, 245, 245, 0.48);
       --drag-shadow: 0 20px 48px rgba(0, 0, 0, 0.68);
     }
+
+    /* テーマ切り替え時のトランジション無効化（パフォーマンス最適化） */
+    .theme-switching,
+    .theme-switching * {
+      transition: none !important;
+    }
+
     *{box-sizing:border-box}
     html,body{height:100%; min-height:100vh}
     body{
@@ -95,48 +102,66 @@
     header{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px}
     header h1{font-size:24px; font-weight:600; margin:0; letter-spacing:.01em; text-shadow: 0 2px 10px rgba(0,0,0,0.08)}
     header .sub{color:var(--muted); font-size:13px; margin-top:4px}
+    /* ====== Theme Toggle - 言語選択と同じ透明グラス質感 ====== */
     .theme-toggle{
       cursor: pointer;
-      background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.15) 0%,
-        rgba(255, 255, 255, 0.05) 100%);
+      background: rgba(255, 255, 255, 0.04);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 50px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--pill-radius); /* 角の取れた四角 */
       padding: 8px 16px;
       display: inline-flex;
       align-items: center;
       gap: 8px;
       font-size: 14px;
       color: var(--ink);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      transition: color .25s ease, transform .15s cubic-bezier(.22,.61,.36,1);
       will-change: transform;
+      position: relative;
+      overflow: hidden;
+      user-select: none; /* テキストコピー無効化 */
+      -webkit-user-select: none;
+    }
+    .theme-toggle::after{
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
+      transition: width 0.6s ease, height 0.6s ease, transform 0.6s ease, opacity 0.6s ease;
+      pointer-events: none;
     }
     [data-theme="dark"] .theme-toggle{
-      background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.08) 0%,
-        rgba(255, 255, 255, 0.02) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
     .theme-toggle:hover{
-      background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.2) 0%,
-        rgba(255, 255, 255, 0.08) 100%);
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      color: var(--ink);
     }
     .theme-toggle:active{
-      transform: translateY(0) scale(0.98);
-      box-shadow: 
-        0 4px 16px rgba(0, 0, 0, 0.15),
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
-        inset 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+      transform: scaleX(1.08) scaleY(0.94); /* 言語選択と同じ歪み */
+    }
+    .theme-toggle:active::after{
+      width: 200px;
+      height: 200px;
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      transition: width 0s, height 0s, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0s;
     }
     .theme-toggle-icon{
       font-size: 18px;
+      position: relative;
+      z-index: 1;
     }
 
     .layout{display:flex; flex-direction:column; gap:18px; align-items:stretch}
@@ -233,6 +258,7 @@
       transform: translateY(-2px);
     }
 
+    /* ====== Control Buttons - 言語選択と同じ透明グラス質感 ====== */
     .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
     .controls button{
       cursor:pointer;
@@ -242,86 +268,65 @@
       gap:6px;
       padding:0 20px;
       appearance:none;
-      border-radius:var(--control-radius);
-      border:1px solid rgba(255, 255, 255, 0.25);
-      background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.15) 0%,
-        rgba(255, 255, 255, 0.05) 100%);
+      border-radius: var(--pill-radius); /* 角の取れた四角 */
+      border:1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       color:var(--ink);
       height:40px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-      transition:transform .2s ease, box-shadow .2s ease;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      transition: color .25s ease, transform .15s cubic-bezier(.22,.61,.36,1);
       font-weight: 500;
       font-size:14px;
       position: relative;
       overflow: hidden;
       will-change: transform;
-    }
-    .controls button::before{
-      content:'';
-      position:absolute;
-      inset:0;
-      background: radial-gradient(circle at center, rgba(255,255,255,0.3) 0%, transparent 70%);
-      opacity:0;
-      transform:scale(0);
-      transition:transform .5s ease, opacity .5s ease;
+      user-select: none; /* テキストコピー無効化 */
+      -webkit-user-select: none;
     }
     .controls button::after{
       content:'';
       position:absolute;
-      inset:-2px;
-      background: inherit;
-      filter: blur(20px);
-      opacity:0;
-      z-index:-1;
-      transition:opacity .3s ease;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
+      transition: width 0.6s ease, height 0.6s ease, transform 0.6s ease, opacity 0.6s ease;
+      pointer-events: none;
     }
     [data-theme="dark"] .controls button{
-      background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.08) 0%, 
-        rgba(255, 255, 255, 0.02) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 
-        0 8px 32px 0 rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
-        inset 0 -1px 0 0 rgba(0, 0, 0, 0.2);
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
     .controls button:hover{
-      transform:translateY(-2px) scale(1.02);
-      box-shadow:
-        0 12px 40px 0 rgba(0, 0, 0, 0.15),
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
-        inset 0 -1px 0 0 rgba(0, 0, 0, 0.08);
-      background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.2) 0%, 
-        rgba(255, 255, 255, 0.08) 100%);
-      filter: brightness(1.05);
-    }
-    .controls button:hover::after{
-      opacity:0.6;
+      color:var(--ink);
     }
     .controls button:active{
-      transform:translateY(0) scale(0.96); 
-      box-shadow:
-        0 4px 16px rgba(0, 0, 0, 0.15),
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
-        inset 0 2px 8px 0 rgba(0, 0, 0, 0.08);
-      filter: brightness(0.95);
+      transform: scaleX(1.08) scaleY(0.94); /* 言語選択と同じ歪み */
     }
-    .controls button:active::before{
-      opacity:1;
-      transform:scale(2);
-      transition:transform .2s ease, opacity .2s ease;
+    .controls button:active::after{
+      width: 200px;
+      height: 200px;
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      transition: width 0s, height 0s, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0s;
     }
     .controls button:disabled{
-      opacity:.55; 
-      cursor:not-allowed; 
-      transform:none; 
-      box-shadow: 
+      opacity:.55;
+      cursor:not-allowed;
+      transform:none;
+      box-shadow:
         inset 0 0 0 1px var(--surface-outline),
         0 2px 8px rgba(0, 0, 0, 0.05);
+      filter: grayscale(0.5);
     }
     .controls--options{
       display:flex;
@@ -330,12 +335,12 @@
       align-items:center;
       justify-content:center;
       padding: 20px 24px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.4);
       border-radius: 18px;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 12px rgba(16, 18, 22, 0.04);
       position: relative;
       overflow: visible;
       isolation: isolate;
@@ -365,16 +370,15 @@
       position: absolute;
       inset: 0;
       border-radius: inherit;
-      background: 
-        radial-gradient(ellipse 100% 80% at 0% 50%, rgba(255, 255, 255, 0.18) 0%, transparent 40%),
-        radial-gradient(ellipse 100% 80% at 100% 50%, rgba(255, 255, 255, 0.18) 0%, transparent 40%),
-        radial-gradient(ellipse 80% 100% at 50% 0%, rgba(255, 255, 255, 0.15) 0%, transparent 40%),
-        radial-gradient(ellipse 80% 100% at 50% 100%, rgba(0, 0, 0, 0.08) 0%, transparent 40%);
+      background:
+        radial-gradient(ellipse 100% 80% at 0% 50%, rgba(255, 255, 255, 0.25) 0%, transparent 40%),
+        radial-gradient(ellipse 100% 80% at 100% 50%, rgba(255, 255, 255, 0.25) 0%, transparent 40%),
+        radial-gradient(ellipse 80% 100% at 50% 0%, rgba(255, 255, 255, 0.2) 0%, transparent 40%);
       pointer-events: none;
       z-index: 2;
       mix-blend-mode: overlay;
       filter: blur(2px) url(#lensDistortion);
-      opacity: 0.6;
+      opacity: 0.5;
     }
     [data-theme="dark"] .controls--options {
       background: rgba(255, 255, 255, 0.02);
@@ -811,7 +815,7 @@
       border: 1px solid rgba(255, 255, 255, 0.4);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      box-shadow: 0 4px 12px rgba(16, 18, 22, 0.12);
+      box-shadow: 0 2px 8px rgba(16, 18, 22, 0.06);
       transition:left .25s cubic-bezier(.4,0,.2,1), width .25s cubic-bezier(.4,0,.2,1);
       pointer-events:none;
       z-index:0;
@@ -876,6 +880,11 @@
       isolation:isolate;
       transition:color .2s ease;
       will-change:color;
+      /* GPU acceleration - forced composite layer */
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      /* Confidence-based properties (no blur) */
+      opacity: var(--confidence-opacity, 1);
     }
     .word::before{
       content:'';
@@ -906,9 +915,6 @@
     .word.word--missed{
       color:var(--miss-text);
       font-weight:600;
-      text-decoration: underline wavy currentColor;
-      text-decoration-thickness: 2px;
-      text-underline-offset: 6px;
     }
     .word.word--missed::before{
       background:var(--miss-bg);
@@ -924,6 +930,19 @@
         rgba(255, 255, 255, 0.45) 100%);
       border: 1px solid rgba(255, 255, 255, 0.8);
       box-shadow: 0 4px 16px rgba(16, 18, 22, 0.12);
+      transform:translateY(-1px);
+    }
+    /* 透明ハイライト（高速モード先行ハイライト） */
+    .word.word--pending.word--active{
+      color:var(--pending-text);
+      font-weight:500;
+    }
+    .word.word--pending.word--active::before{
+      background: linear-gradient(135deg,
+        rgba(200, 200, 200, 0.25) 0%,
+        rgba(180, 180, 180, 0.15) 100%);
+      border: 1px solid rgba(200, 200, 200, 0.3);
+      box-shadow: 0 2px 8px rgba(16, 18, 22, 0.06);
       transform:translateY(-1px);
     }
     .word.word--active.word--matched::before{
@@ -947,6 +966,14 @@
       border: 1px solid rgba(255, 255, 255, 0.25);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     }
+    /* ダークテーマ：透明ハイライト */
+    [data-theme="dark"] .word.word--pending.word--active::before{
+      background: linear-gradient(135deg,
+        rgba(120, 120, 120, 0.2) 0%,
+        rgba(100, 100, 100, 0.1) 100%);
+      border: 1px solid rgba(120, 120, 120, 0.25);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
     [data-theme="dark"] .word.word--active.word--matched::before{
       background: linear-gradient(135deg,
         rgba(76, 175, 80, 0.3) 0%,
@@ -960,6 +987,25 @@
         rgba(211, 47, 47, 0.25) 100%);
       border: 1px solid rgba(244, 67, 54, 0.45);
       box-shadow: 0 4px 16px rgba(244, 67, 54, 0.28);
+    }
+
+    /* Confidence-based visual feedback */
+    .word[data-confidence="low"] {
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    }
+
+    .word[data-confidence="high"] {
+      text-shadow:
+        0 0 20px var(--confidence-color, currentColor),
+        0 0 40px var(--confidence-color, currentColor);
+    }
+
+    /* Smooth transitions for confidence changes (no blur) */
+    .word {
+      transition:
+        color 0.2s ease,
+        opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     @supports (-webkit-touch-callout: none){
       .word::before,
@@ -991,16 +1037,6 @@
       font-weight:500;
     }
     .hint{font-size:12px; color:var(--muted); margin-top:8px}
-    .kbd{
-      border:1px solid var(--surface-outline);
-      padding:.1em .4em;
-      border-radius:6px;
-      background: var(--button-bg);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-      font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
     footer{margin-top:18px; color:var(--muted); font-size:12px}
     a{color:inherit; text-decoration:underline}
 
