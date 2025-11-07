@@ -110,10 +110,12 @@
       font-size: 14px;
       color: var(--ink);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-      transition: color .25s ease, transform .25s cubic-bezier(.25,.8,.25,1);
+      transition: color .25s ease, transform .15s cubic-bezier(.22,.61,.36,1);
       will-change: transform;
       position: relative;
       overflow: hidden;
+      user-select: none; /* テキストコピー無効化 */
+      -webkit-user-select: none;
     }
     .theme-toggle::after{
       content: '';
@@ -140,7 +142,7 @@
       color: var(--ink);
     }
     .theme-toggle:active{
-      transform: scale(0.97);
+      transform: scaleX(1.08) scaleY(0.94); /* 言語選択と同じ歪み */
     }
     .theme-toggle:active::after{
       width: 200px;
@@ -267,12 +269,14 @@
       color:var(--ink);
       height:40px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-      transition: color .25s ease, transform .25s cubic-bezier(.25,.8,.25,1);
+      transition: color .25s ease, transform .15s cubic-bezier(.22,.61,.36,1);
       font-weight: 500;
       font-size:14px;
       position: relative;
       overflow: hidden;
       will-change: transform;
+      user-select: none; /* テキストコピー無効化 */
+      -webkit-user-select: none;
     }
     .controls button::after{
       content:'';
@@ -299,7 +303,7 @@
       color:var(--ink);
     }
     .controls button:active{
-      transform: scale(0.97);
+      transform: scaleX(1.08) scaleY(0.94); /* 言語選択と同じ歪み */
     }
     .controls button:active::after{
       width: 200px;
