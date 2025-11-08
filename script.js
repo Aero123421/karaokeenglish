@@ -486,6 +486,13 @@
   let lastSpeedNorm = '';
   let speedState = { history: [], map: [], lastReliable: -1, anchor: -1, missCount: 0, stability: 0, lastInputTs: 0, lastEmitTs: 0 };
 
+  // ====== Web Audio API for Microphone Gain Control ======
+  let audioContext = null;
+  let micGainNode = null;
+  let micSourceNode = null;
+  let micStream = null;
+  let currentGainValue = parseFloat(localStorage.getItem('micGain') || '1.0');
+
   // ====== Lightweight Processing Algorithm Instances ======
   const confidenceHighlighter = new ConfidenceBasedHighlighter();
   const gpuAnimator = new GPUOptimizedAnimator();
@@ -731,7 +738,13 @@
     if(permissionPrimed) return true;
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
     try{
-      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: false  // Disable auto gain so we can control it manually
+        }
+      });
       stream.getTracks().forEach(track=>track.stop());
       permissionPrimed = true;
       return true;
@@ -739,6 +752,66 @@
       console.warn('Microphone permission request failed', err);
       return false;
     }
+  }
+
+  async function setupMicrophoneWithGain(){
+    try{
+      // Clean up existing audio context if any
+      if(micStream){
+        micStream.getTracks().forEach(track => track.stop());
+      }
+      if(audioContext && audioContext.state !== 'closed'){
+        await audioContext.close();
+      }
+
+      // Get microphone stream with manual gain control
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: false
+        }
+      });
+
+      // Create audio context and nodes
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      micSourceNode = audioContext.createMediaStreamSource(micStream);
+      micGainNode = audioContext.createGain();
+
+      // Set gain value
+      micGainNode.gain.value = currentGainValue;
+
+      // Connect nodes: source -> gain -> destination
+      micSourceNode.connect(micGainNode);
+      micGainNode.connect(audioContext.destination);
+
+      console.log(`Microphone gain set to ${currentGainValue}x`);
+      return true;
+    }catch(err){
+      console.error('Failed to setup microphone with gain:', err);
+      return false;
+    }
+  }
+
+  function updateMicGain(newGain){
+    currentGainValue = newGain;
+    localStorage.setItem('micGain', newGain.toString());
+    if(micGainNode){
+      micGainNode.gain.value = newGain;
+    }
+  }
+
+  function cleanupAudioResources(){
+    if(micStream){
+      micStream.getTracks().forEach(track => track.stop());
+      micStream = null;
+    }
+    if(audioContext && audioContext.state !== 'closed'){
+      audioContext.close();
+      audioContext = null;
+    }
+    micSourceNode = null;
+    micGainNode = null;
   }
 
   function levenshtein(a,b){
@@ -960,6 +1033,15 @@
       return;
     }
 
+    // Setup microphone with gain control
+    if(!resume){
+      const audioSetupOk = await setupMicrophoneWithGain();
+      if(!audioSetupOk){
+        recStatus.textContent = 'マイクの初期化に失敗しました';
+        return;
+      }
+    }
+
     clearRestartTimer();
     clearIdleGuard();
     shouldAutoRestart = true;
@@ -977,6 +1059,7 @@
       btnMicStart.disabled = false;
       btnMicStop.disabled = true;
       shouldAutoRestart = false;
+      cleanupAudioResources();
     }
   }
 
@@ -1012,9 +1095,14 @@
       lastSpeedNorm = '';
       pendingGap = false;
       unmatchedCount = 0;
-      recStatus.textContent = userStopRequested ? '停止しました' : '待機中';
+      const wasUserStop = userStopRequested;
+      recStatus.textContent = wasUserStop ? '停止しました' : '待機中';
       userStopRequested = false;
       shouldAutoRestart = false;
+      // Cleanup if not user-initiated (micStop already cleaned up)
+      if(!wasUserStop){
+        cleanupAudioResources();
+      }
       return;
     }
     clearRestartTimer();
@@ -1158,12 +1246,29 @@
     if(recognizer){
       try{ recognizer.stop(); }catch(e){ console.warn(e); }
     }
+    cleanupAudioResources();
     lastResultKey = '';
     lastSpeedNorm = '';
     pendingGap = false;
     unmatchedCount = 0;
     confidenceInterpolator.reset();
     resetSpeedState();
+  }
+
+  // ====== Microphone Gain Slider ======
+  const micGainSlider = document.getElementById('micGainSlider');
+  const micGainValue = document.getElementById('micGainValue');
+
+  // Initialize slider from saved value
+  if(micGainSlider){
+    micGainSlider.value = currentGainValue;
+    micGainValue.textContent = Math.round(currentGainValue * 100);
+
+    micGainSlider.addEventListener('input', (e) => {
+      const gain = parseFloat(e.target.value);
+      micGainValue.textContent = Math.round(gain * 100);
+      updateMicGain(gain);
+    });
   }
 
   // ====== そのほか ======

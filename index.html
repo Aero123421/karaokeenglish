@@ -99,6 +99,18 @@
           <div class="session-status">
             <span class="session-status__text" id="recStatus">準備完了</span>
           </div>
+          <div class="mic-gain-control">
+            <label for="micGainSlider" class="mic-gain-label">
+              マイク感度: <span id="micGainValue">100</span>%
+            </label>
+            <input type="range" id="micGainSlider" min="0.5" max="3.0" step="0.1" value="1.0" class="mic-gain-slider">
+            <div class="mic-gain-markers">
+              <span>50%</span>
+              <span>100%</span>
+              <span>200%</span>
+              <span>300%</span>
+            </div>
+          </div>
           <div class="controls controls--mic">
             <button id="btnMicStart">🎤 開始</button>
             <button id="btnMicStop" disabled>■ 停止</button>
