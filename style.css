@@ -804,91 +804,6 @@
     .controls--mic{gap:12px; flex-wrap:wrap; justify-content:center}
     .controls--mic button{min-width:160px; justify-content:center}
 
-    /* マイクゲインコントロール */
-    .mic-gain-control {
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto 16px;
-      padding: 12px 16px;
-      background: var(--color-surface-input);
-      border: 1px solid var(--color-border-outline);
-      border-radius: var(--radius-control);
-      box-shadow: var(--shadow-matte-soft);
-    }
-
-    .mic-gain-label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 14px;
-      color: var(--color-main-text);
-      font-weight: 500;
-      text-align: center;
-    }
-
-    .mic-gain-slider {
-      width: 100%;
-      height: 6px;
-      border-radius: 3px;
-      background: linear-gradient(to right,
-        var(--color-error-highlight) 0%,
-        var(--color-success-highlight) 33%,
-        var(--color-success-highlight) 67%,
-        var(--color-warning-highlight) 100%);
-      outline: none;
-      -webkit-appearance: none;
-      appearance: none;
-      cursor: pointer;
-      margin-bottom: 8px;
-    }
-
-    .mic-gain-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--color-main-text);
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-      border: 2px solid var(--color-surface-card);
-      transition: transform 0.1s ease;
-    }
-
-    .mic-gain-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.1);
-    }
-
-    .mic-gain-slider::-webkit-slider-thumb:active {
-      transform: scale(0.95);
-    }
-
-    .mic-gain-slider::-moz-range-thumb {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--color-main-text);
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-      border: 2px solid var(--color-surface-card);
-      transition: transform 0.1s ease;
-    }
-
-    .mic-gain-slider::-moz-range-thumb:hover {
-      transform: scale(1.1);
-    }
-
-    .mic-gain-slider::-moz-range-thumb:active {
-      transform: scale(0.95);
-    }
-
-    .mic-gain-markers {
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      color: var(--color-subtle-text);
-      padding: 0 4px;
-    }
-
     /* 読み上げ表示（音声認識ハイライトのみ） */
     .reader{
       flex:1;
@@ -1210,28 +1125,7 @@
       .control-body--segment::before {
         box-shadow: 0 12px 28px var(--shadow-accent);
       }
-
-      /* マイクゲインコントロール（モバイル） */
-      .mic-gain-control {
-        max-width: 100%;
-        padding: 12px;
-        touch-action: none;
-      }
-
-      .mic-gain-slider {
-        height: 8px;
-      }
-
-      .mic-gain-slider::-webkit-slider-thumb {
-        width: 24px;
-        height: 24px;
-      }
-
-      .mic-gain-slider::-moz-range-thumb {
-        width: 24px;
-        height: 24px;
-      }
-
+      
       .controls--mic { flex-direction: column; gap: 12px; }
       .controls--mic button { width: 100%; min-width: 100%; }
       
