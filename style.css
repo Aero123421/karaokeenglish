@@ -9,6 +9,17 @@
       --panel: rgba(255, 247, 236, 0.82);
       --panel-hover: rgba(255, 247, 236, 0.92);
       --border: rgba(249, 233, 210, 0.9);
+      --surface-card: #fff7ee;
+      --surface-card-border: rgba(227, 203, 172, 0.9);
+      --surface-card-shadow: 0 16px 36px rgba(158, 127, 96, 0.16);
+      --control-solid-bg: #f9f1e6;
+      --control-solid-border: rgba(217, 192, 162, 0.9);
+      --control-solid-shadow: 0 10px 24px rgba(158, 127, 96, 0.16);
+      --control-solid-hover-bg: #f0e3d4;
+      --control-solid-active-bg: #e6d5c2;
+      --control-solid-hover-border: rgba(209, 143, 82, 0.32);
+      --control-solid-active-border: rgba(209, 143, 82, 0.45);
+      --control-solid-text: #2d2620;
       --surface-outline: rgba(170, 140, 108, 0.18);
       --active-bg: rgba(209, 143, 82, 0.18);
       --active-text: #2d2620;
@@ -48,6 +59,17 @@
       --panel: rgba(28, 30, 32, 0.78);
       --panel-hover: rgba(36, 38, 40, 0.86);
       --border: rgba(255, 255, 255, 0.06);
+      --surface-card: #1f2226;
+      --surface-card-border: rgba(255, 255, 255, 0.06);
+      --surface-card-shadow: 0 18px 38px rgba(0, 0, 0, 0.7);
+      --control-solid-bg: #24272c;
+      --control-solid-border: rgba(255, 255, 255, 0.08);
+      --control-solid-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+      --control-solid-hover-bg: #2b2f35;
+      --control-solid-active-bg: #31363d;
+      --control-solid-hover-border: rgba(244, 205, 160, 0.28);
+      --control-solid-active-border: rgba(244, 205, 160, 0.38);
+      --control-solid-text: #f3efe8;
       --surface-outline: rgba(0, 0, 0, 0.55);
       --active-bg: rgba(244, 205, 160, 0.22);
       --active-text: #f3efe8;
@@ -99,61 +121,33 @@
     header{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px}
     header h1{font-size:24px; font-weight:600; margin:0; letter-spacing:.01em; text-shadow: 0 2px 10px rgba(0,0,0,0.08)}
     header .sub{color:var(--muted); font-size:13px; margin-top:4px}
-    /* ====== Theme Toggle - 言語選択と同じ透明グラス質感 ====== */
+    /* ====== Theme Toggle - マットなピル型ボタン ====== */
     .theme-toggle{
       cursor: pointer;
-      background: rgba(255, 255, 255, 0.04);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background-color: var(--control-solid-bg);
+      border: 1px solid var(--control-solid-border);
       border-radius: var(--pill-radius); /* 角の取れた四角 */
       padding: 8px 16px;
       display: inline-flex;
       align-items: center;
       gap: 8px;
       font-size: 14px;
-      color: var(--ink);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-      transition: color .25s ease, transform .15s cubic-bezier(.22,.61,.36,1);
+      color: var(--control-solid-text);
+      box-shadow: var(--control-solid-shadow);
+      transition: color .25s ease, background-color .2s ease, border-color .2s ease, transform .15s cubic-bezier(.22,.61,.36,1);
       will-change: transform;
-      position: relative;
-      overflow: hidden;
       user-select: none; /* テキストコピー無効化 */
       -webkit-user-select: none;
     }
-    .theme-toggle::after{
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
-      transform: translate(-50%, -50%) scale(0);
-      opacity: 0;
-      transition: width 0.6s ease, height 0.6s ease, transform 0.6s ease, opacity 0.6s ease;
-      pointer-events: none;
-    }
-    [data-theme="dark"] .theme-toggle{
-      background: rgba(255, 255, 255, 0.02);
-      border-color: rgba(255, 255, 255, 0.06);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
     .theme-toggle:hover{
-      color: var(--ink);
+      background-color: var(--control-solid-hover-bg);
+      border-color: var(--control-solid-hover-border);
+      color: var(--control-solid-text);
     }
     .theme-toggle:active{
       transform: scaleX(1.08) scaleY(0.94); /* 言語選択と同じ歪み */
-    }
-    .theme-toggle:active::after{
-      width: 200px;
-      height: 200px;
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-      transition: width 0s, height 0s, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0s;
+      background-color: var(--control-solid-active-bg);
+      border-color: var(--control-solid-active-border);
     }
     .theme-toggle-icon{
       font-size: 18px;
@@ -165,58 +159,15 @@
 
     .card{
       position:relative;
-      background: var(--panel);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border:1px solid var(--surface-outline);
-      border-radius:20px;
+      background: var(--surface-card);
+      border:1px solid var(--surface-card-border);
+      border-radius:18px;
       display:flex;
       flex-direction:column;
       overflow:hidden;
-      box-shadow: var(--glass-shadow);
+      box-shadow: var(--surface-card-shadow);
       will-change: transform;
       contain: layout style paint;
-    }
-    .card::before{
-      content:'';
-      position:absolute;
-      inset:0;
-      border-radius:inherit;
-      background: 
-        radial-gradient(ellipse 120% 80% at 20% 30%, rgba(255, 255, 255, 0.5) 0%, transparent 60%),
-        radial-gradient(ellipse 100% 80% at 80% 70%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
-      border:1px solid var(--frost-line);
-      mix-blend-mode:overlay;
-      pointer-events:none;
-      opacity:0.9;
-      filter: blur(0.5px);
-    }
-    .card::after{
-      content:'';
-      position:absolute;
-      inset:0;
-      border-radius:inherit;
-      box-shadow: 
-        inset 0 1px 0 var(--frost-line-strong), 
-        inset 0 -24px 48px rgba(16, 18, 22, 0.08),
-        inset 4px 0 12px -6px rgba(255, 255, 255, 0.5),
-        inset -4px 0 12px -6px rgba(255, 255, 255, 0.5);
-      pointer-events:none;
-      opacity:0.8;
-    }
-    [data-theme="dark"] .card::before{
-      background: linear-gradient(150deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02));
-      border-color: var(--frost-line);
-      opacity:1;
-      mix-blend-mode: normal;
-    }
-    [data-theme="dark"] .card::after{
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -32px 60px rgba(0, 0, 0, 0.5);
-    }
-    .card > *{
-      position:relative;
-      z-index:1;
     }
     .card .head{
       display:flex;
@@ -255,7 +206,7 @@
       transform: translateY(-2px);
     }
 
-    /* ====== Control Buttons - 言語選択と同じ透明グラス質感 ====== */
+    /* ====== Control Buttons - マットな操作ボタン ====== */
     .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
     .controls button{
       cursor:pointer;
@@ -266,60 +217,35 @@
       padding:0 20px;
       appearance:none;
       border-radius: var(--pill-radius); /* 角の取れた四角 */
-      border:1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(255, 255, 255, 0.04);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      color:var(--ink);
+      border:1px solid var(--control-solid-border);
+      background-color: var(--control-solid-bg);
+      color:var(--control-solid-text);
       height:40px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-      transition: color .25s ease, transform .15s cubic-bezier(.22,.61,.36,1);
+      box-shadow: var(--control-solid-shadow);
+      transition: color .25s ease, background-color .2s ease, border-color .2s ease, transform .15s cubic-bezier(.22,.61,.36,1);
       font-weight: 500;
       font-size:14px;
-      position: relative;
-      overflow: hidden;
       will-change: transform;
       user-select: none; /* テキストコピー無効化 */
       -webkit-user-select: none;
     }
-    .controls button::after{
-      content:'';
-      position:absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
-      transform: translate(-50%, -50%) scale(0);
-      opacity: 0;
-      transition: width 0.6s ease, height 0.6s ease, transform 0.6s ease, opacity 0.6s ease;
-      pointer-events: none;
-    }
-    [data-theme="dark"] .controls button{
-      background: rgba(255, 255, 255, 0.02);
-      border-color: rgba(255, 255, 255, 0.06);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
     .controls button:hover{
-      color:var(--ink);
+      background-color: var(--control-solid-hover-bg);
+      border-color: var(--control-solid-hover-border);
+      color:var(--control-solid-text);
     }
     .controls button:active{
       transform: scaleX(1.08) scaleY(0.94); /* 言語選択と同じ歪み */
-    }
-    .controls button:active::after{
-      width: 200px;
-      height: 200px;
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-      transition: width 0s, height 0s, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0s;
+      background-color: var(--control-solid-active-bg);
+      border-color: var(--control-solid-active-border);
     }
     .controls button:disabled{
       opacity:.55;
       cursor:not-allowed;
       transform:none;
+      background-color: var(--control-solid-bg);
+      border-color: var(--surface-outline);
+      color: var(--muted);
       box-shadow:
         inset 0 0 0 1px var(--surface-outline),
         0 2px 8px rgba(0, 0, 0, 0.05);
@@ -332,68 +258,10 @@
       align-items:center;
       justify-content:center;
       padding: 20px 24px;
-      background: rgba(255, 255, 255, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.4);
+      background-color: var(--surface-card);
+      border: 1px solid var(--surface-card-border);
       border-radius: 18px;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      box-shadow: 0 4px 12px rgba(16, 18, 22, 0.04);
-      position: relative;
-      overflow: visible;
-      isolation: isolate;
-    }
-    .controls--options::before {
-      content: '';
-      position: absolute;
-      inset: -1px;
-      border-radius: inherit;
-      padding: 1px;
-      background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.15) 0%,
-        rgba(255, 255, 255, 0.05) 25%,
-        transparent 50%,
-        transparent 75%,
-        rgba(255, 255, 255, 0.12) 100%);
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      mask-composite: exclude;
-      pointer-events: none;
-      z-index: 1;
-      filter: blur(0.5px);
-    }
-    .controls--options::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      background:
-        radial-gradient(ellipse 100% 80% at 0% 50%, rgba(255, 255, 255, 0.25) 0%, transparent 40%),
-        radial-gradient(ellipse 100% 80% at 100% 50%, rgba(255, 255, 255, 0.25) 0%, transparent 40%),
-        radial-gradient(ellipse 80% 100% at 50% 0%, rgba(255, 255, 255, 0.2) 0%, transparent 40%);
-      pointer-events: none;
-      z-index: 2;
-      mix-blend-mode: overlay;
-      filter: blur(2px) url(#lensDistortion);
-      opacity: 0.5;
-    }
-    [data-theme="dark"] .controls--options {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(60px) saturate(150%);
-      -webkit-backdrop-filter: blur(60px) saturate(150%);
-      box-shadow: 
-        0 8px 32px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
-    }
-    [data-theme="dark"] .controls--options::after {
-      background: 
-        radial-gradient(ellipse 100% 80% at 0% 50%, rgba(255, 255, 255, 0.25) 0%, transparent 40%),
-        radial-gradient(ellipse 100% 80% at 100% 50%, rgba(255, 255, 255, 0.25) 0%, transparent 40%),
-        radial-gradient(ellipse 80% 100% at 50% 0%, rgba(255, 255, 255, 0.2) 0%, transparent 40%),
-        radial-gradient(ellipse 80% 100% at 50% 100%, rgba(0, 0, 0, 0.3) 0%, transparent 40%);
-      opacity: 0.75;
+      box-shadow: var(--surface-card-shadow);
     }
     .control{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink); position:relative; z-index:3}
     .control-title{font-size:12px; font-weight:500; color:var(--muted); white-space:nowrap}
