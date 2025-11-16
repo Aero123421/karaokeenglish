@@ -197,10 +197,19 @@ export class SpeechRecognitionService {
     this.appState.recognizer = new this.SpeechRecognition();
     this.appState.recognizer.continuous = true;
     this.appState.recognizer.interimResults = true;
-    this.appState.recognizer.onstart = () => this.handleRecognizerStart();
-    this.appState.recognizer.onend = () => this.handleRecognizerEnd();
-    this.appState.recognizer.onerror = (ev) => this.handleRecognizerError(ev);
-    this.appState.recognizer.onresult = (ev) => this.handleRecognizerResult(ev);
+
+    // Store handler references for cleanup
+    this.handlers = {
+      start: () => this.handleRecognizerStart(),
+      end: () => this.handleRecognizerEnd(),
+      error: (ev) => this.handleRecognizerError(ev),
+      result: (ev) => this.handleRecognizerResult(ev)
+    };
+
+    this.appState.recognizer.onstart = this.handlers.start;
+    this.appState.recognizer.onend = this.handlers.end;
+    this.appState.recognizer.onerror = this.handlers.error;
+    this.appState.recognizer.onresult = this.handlers.result;
   }
 
   /**
@@ -257,6 +266,10 @@ export class SpeechRecognitionService {
       this.onStatusUpdate('⏳ 無音が続いたため再接続しています…');
     }
 
+    // Clear any existing restart timer before setting a new one
+    if (this.appState.restartTimer) {
+      clearTimeout(this.appState.restartTimer);
+    }
     this.appState.restartTimer = setTimeout(() => {
       this.start({ resume: true, fromRestart: true });
     }, 180);
@@ -479,5 +492,23 @@ export class SpeechRecognitionService {
     this.appState.resetSpeedState();
 
     if (this.onEnd) this.onEnd();
+  }
+
+  /**
+   * Cleanup recognizer and event listeners
+   */
+  destroy() {
+    this.stop();
+
+    // Clean up event listeners
+    if (this.appState.recognizer && this.handlers) {
+      this.appState.recognizer.onstart = null;
+      this.appState.recognizer.onend = null;
+      this.appState.recognizer.onerror = null;
+      this.appState.recognizer.onresult = null;
+    }
+
+    this.appState.recognizer = null;
+    this.handlers = null;
   }
 }

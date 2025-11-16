@@ -62,7 +62,7 @@ export function ToggleSlider({
     requestAnimationFrame(updateSlider);
 
     return () => window.removeEventListener('resize', handleResize);
-  }, [value]);
+  }, [value, offsetVar, widthVar, name]);
 
   const handleKeyDown = (e, currentValue, currentIndex) => {
     let targetIndex = -1;

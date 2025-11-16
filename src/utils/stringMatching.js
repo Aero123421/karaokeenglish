@@ -9,12 +9,20 @@
  * @returns {string} 正規化された文字列
  */
 export function normalizeForMatch(str) {
+  // Null/undefined check
+  if (str == null) {
+    return '';
+  }
+
+  // Convert to string if not already
+  const strValue = String(str);
+
   try {
     // 大文字小文字を区別しない（toLowerCase）
-    return str.toLowerCase().replace(/[\u2019\u2018]/g, "'")
+    return strValue.toLowerCase().replace(/[\u2019\u2018]/g, "'")
       .replace(/[^\p{L}\p{N}'\s]+/gu, ' ').replace(/\s+/g, ' ').trim();
   } catch(e) {
-    return str.toLowerCase().replace(/[^a-z0-9'\s]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return strValue.toLowerCase().replace(/[^a-z0-9'\s]+/g, ' ').replace(/\s+/g, ' ').trim();
   }
 }
 
