@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 /**
  * Toggle Slider Component
@@ -24,8 +24,13 @@ export function ToggleSlider({
       return metricsRef.current.cached;
     }
 
-    const rect = toggleRef.current.getBoundingClientRect();
-    const styles = getComputedStyle(toggleRef.current);
+    if (!toggleRef.current) {
+      return { rect: { left: 0 }, paddingLeft: 0, paddingRight: 0, borderLeft: 0, borderRight: 0 };
+    }
+
+    const toggleEl = toggleRef.current;
+    const rect = toggleEl.getBoundingClientRect();
+    const styles = getComputedStyle(toggleEl);
     metricsRef.current.cached = {
       rect,
       paddingLeft: parseFloat(styles.paddingLeft) || 0,
@@ -37,7 +42,7 @@ export function ToggleSlider({
     return metricsRef.current.cached;
   };
 
-  const updateSlider = () => {
+  const updateSlider = useCallback(() => {
     if (!toggleRef.current) return;
 
     const activeLabel = toggleRef.current.querySelector(`label[for="${name}-${value}"]`);
@@ -47,10 +52,11 @@ export function ToggleSlider({
     const labelRect = activeLabel.getBoundingClientRect();
     if (!labelRect.width) return;
 
-    const offset = labelRect.left - rect.left - borderLeft - paddingLeft;
+    const scrollOffset = toggleRef.current.scrollLeft || 0;
+    const offset = labelRect.left - rect.left - borderLeft - paddingLeft + scrollOffset;
     toggleRef.current.style.setProperty(offsetVar, `${offset}px`);
     toggleRef.current.style.setProperty(widthVar, `${labelRect.width}px`);
-  };
+  }, [value, name, offsetVar, widthVar]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -62,7 +68,20 @@ export function ToggleSlider({
     requestAnimationFrame(updateSlider);
 
     return () => window.removeEventListener('resize', handleResize);
-  }, [value, offsetVar, widthVar, name]);
+  }, [updateSlider]);
+
+  useEffect(() => {
+    const toggleEl = toggleRef.current;
+    if (!toggleEl) return;
+
+    const handleScroll = () => {
+      metricsRef.current.valid = false;
+      requestAnimationFrame(updateSlider);
+    };
+
+    toggleEl.addEventListener('scroll', handleScroll, { passive: true });
+    return () => toggleEl.removeEventListener('scroll', handleScroll);
+  }, [updateSlider]);
 
   const handleKeyDown = (e, currentValue, currentIndex) => {
     let targetIndex = -1;
