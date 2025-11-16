@@ -1193,6 +1193,7 @@
       .control-body--segment::before {
         transition: none;
       }
+    }
 
 /* ── Landscape Orientation Optimization ─────────────────────────────── */
 @media (max-height: 600px) and (orientation: landscape) {

@@ -54,6 +54,100 @@ function App() {
   const speechRecognitionRef = useRef(null);
   const readerRef = useRef(null);
 
+  /**
+   * ハイライトを巻き戻し
+   */
+  const rewindHighlight = useCallback((targetIndex, wordSpans) => {
+    const clamped = Math.min(Math.max(targetIndex, -1), wordSpans.length - 1);
+
+    const newStates = [...wordStates];
+    for (let i = clamped + 1; i < newStates.length; i++) {
+      newStates[i] = 'pending';
+      const span = wordSpans[i];
+      if (span) {
+        span.classList.remove('word--matched', 'word--missed');
+        span.classList.add('word--pending');
+        span.classList.remove('word--active', 'active');
+      }
+    }
+
+    if (currentWord >= 0 && currentWord < wordSpans.length) {
+      wordSpans[currentWord].classList.remove('word--active', 'active');
+    }
+
+    setCurrentWord(clamped);
+    stateRef.current.lastMicIndex = clamped;
+
+    if (clamped >= 0) {
+      wordSpans[clamped].classList.add('word--active', 'active');
+      if (autoScrollEnabled) {
+        wordSpans[clamped].scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    }
+  }, [wordStates, currentWord, autoScrollEnabled, setCurrentWord, stateRef]);
+
+  /**
+   * ハイライト処理
+   */
+  const highlightTo = useCallback((index, options = {}) => {
+    const { manual = false, outcome = 'match', markSkipped = true, confidence = 0.7, tentative = false } = options;
+
+    if (!readerRef.current) return;
+    const wordSpans = readerRef.current.querySelectorAll('.word');
+
+    if (outcome === 'rollback' && !manual) {
+      rewindHighlight(index, wordSpans);
+      return;
+    }
+
+    if (index < 0 || index >= wordSpans.length) return;
+
+    // 距離チェック：透明ハイライトが離れすぎている場合は適用しない
+    if (tentative && currentWord >= 0) {
+      const distance = index - currentWord;
+      if (distance > 5 || distance < 1) {
+        return;
+      }
+    }
+
+    if (!manual && !tentative) {
+      const prev = currentWord;
+      if (outcome === 'match') {
+        if (markSkipped) {
+          const start = prev >= 0 ? prev + 1 : 0;
+          if (index - start > 0) {
+            updateWordStateRange(start, index - 1, 'missed');
+          }
+        }
+        updateWordState(index, 'matched');
+
+        // 信頼度に基づいたスタイルを適用
+        servicesRef.current.confidenceHighlighter.applyConfidenceStyle(wordSpans[index], confidence);
+      } else if (outcome === 'skip') {
+        if (markSkipped) {
+          const from = prev < index ? prev + 1 : index;
+          updateWordStateRange(from, index, 'missed');
+        }
+      }
+    }
+
+    if (currentWord >= 0 && currentWord < wordSpans.length) {
+      wordSpans[currentWord].classList.remove('word--active', 'active');
+    }
+    wordSpans[index].classList.add('word--active', 'active');
+
+    if (!tentative) {
+      setCurrentWord(index);
+      stateRef.current.lastMicIndex = index;
+      stateRef.current.pendingGap = false;
+      stateRef.current.unmatchedCount = 0;
+    }
+
+    if (autoScrollEnabled) {
+      wordSpans[index].scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [currentWord, autoScrollEnabled, updateWordState, updateWordStateRange, setCurrentWord, stateRef, rewindHighlight]);
+
   // Initialize speech recognition service
   useEffect(() => {
     const appStateForService = {
@@ -132,100 +226,6 @@ function App() {
     stateRef.current.unmatchedCount = 0;
     stateRef.current.pendingGap = false;
   }, [recMode, setRecognitionMode, stateRef]);
-
-  /**
-   * ハイライト処理
-   */
-  const highlightTo = useCallback((index, options = {}) => {
-    const { manual = false, outcome = 'match', markSkipped = true, confidence = 0.7, tentative = false } = options;
-
-    if (!readerRef.current) return;
-    const wordSpans = readerRef.current.querySelectorAll('.word');
-
-    if (outcome === 'rollback' && !manual) {
-      rewindHighlight(index, wordSpans);
-      return;
-    }
-
-    if (index < 0 || index >= wordSpans.length) return;
-
-    // 距離チェック：透明ハイライトが離れすぎている場合は適用しない
-    if (tentative && currentWord >= 0) {
-      const distance = index - currentWord;
-      if (distance > 5 || distance < 1) {
-        return;
-      }
-    }
-
-    if (!manual && !tentative) {
-      const prev = currentWord;
-      if (outcome === 'match') {
-        if (markSkipped) {
-          const start = prev >= 0 ? prev + 1 : 0;
-          if (index - start > 0) {
-            updateWordStateRange(start, index - 1, 'missed');
-          }
-        }
-        updateWordState(index, 'matched');
-
-        // 信頼度に基づいたスタイルを適用
-        servicesRef.current.confidenceHighlighter.applyConfidenceStyle(wordSpans[index], confidence);
-      } else if (outcome === 'skip') {
-        if (markSkipped) {
-          const from = prev < index ? prev + 1 : index;
-          updateWordStateRange(from, index, 'missed');
-        }
-      }
-    }
-
-    if (currentWord >= 0 && currentWord < wordSpans.length) {
-      wordSpans[currentWord].classList.remove('word--active', 'active');
-    }
-    wordSpans[index].classList.add('word--active', 'active');
-
-    if (!tentative) {
-      setCurrentWord(index);
-      stateRef.current.lastMicIndex = index;
-      stateRef.current.pendingGap = false;
-      stateRef.current.unmatchedCount = 0;
-    }
-
-    if (autoScrollEnabled) {
-      wordSpans[index].scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
-  }, [currentWord, autoScrollEnabled, updateWordState, updateWordStateRange, setCurrentWord, stateRef]);
-
-  /**
-   * ハイライトを巻き戻し
-   */
-  const rewindHighlight = useCallback((targetIndex, wordSpans) => {
-    const clamped = Math.min(Math.max(targetIndex, -1), wordSpans.length - 1);
-
-    const newStates = [...wordStates];
-    for (let i = clamped + 1; i < newStates.length; i++) {
-      newStates[i] = 'pending';
-      const span = wordSpans[i];
-      if (span) {
-        span.classList.remove('word--matched', 'word--missed');
-        span.classList.add('word--pending');
-        span.classList.remove('word--active', 'active');
-      }
-    }
-
-    if (currentWord >= 0 && currentWord < wordSpans.length) {
-      wordSpans[currentWord].classList.remove('word--active', 'active');
-    }
-
-    setCurrentWord(clamped);
-    stateRef.current.lastMicIndex = clamped;
-
-    if (clamped >= 0) {
-      wordSpans[clamped].classList.add('word--active', 'active');
-      if (autoScrollEnabled) {
-        wordSpans[clamped].scrollIntoView({ block: 'center', behavior: 'smooth' });
-      }
-    }
-  }, [wordStates, currentWord, autoScrollEnabled, setCurrentWord, stateRef]);
 
   /**
    * テキスト変更ハンドラ
