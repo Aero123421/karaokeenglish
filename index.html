@@ -4,117 +4,14 @@
   <base href="/karaokeenglish/">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; media-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; media-src 'self';">
   <title>英語カラオケ - English Karaoke</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- SVG Filters -->
-  <svg style="position: absolute; width: 0; height: 0;" aria-hidden="true">
-    <defs>
-      <filter id="lensDistortion" x="-50%" y="-50%" width="200%" height="200%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.01 0.01" numOctaves="2" result="noise" seed="2" />
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-    </defs>
-  </svg>
-  <div class="wrapper">
-    <header>
-      <div>
-        <h1>🎤 英語カラオケ</h1>
-        <div class="sub">音声認識で英語学習</div>
-      </div>
-      <button class="theme-toggle" id="themeToggle">
-        <span class="theme-toggle-icon" id="themeIcon">🌙</span>
-        <span id="themeText">ダークモード</span>
-      </button>
-    </header>
-
-    <div class="layout">
-      <section class="card card--input">
-        <div class="head">
-          <h2>テキスト（スクリプトを貼り付け）</h2>
-          <div class="controls">
-            <button id="loadSample">サンプル</button>
-            <button id="resetHL">ハイライトをリセット</button>
-          </div>
-        </div>
-        <div class="body">
-          <textarea id="textInput" spellcheck="false" placeholder="ここに英文スクリプトを貼り付けてください"></textarea>
-          <div class="hint">単語単位で分割し、発話に応じて <b>現在の単語</b> と <b>正しく読めた単語（緑）</b>／<b>聞き取りにくかった単語（赤）</b> を表示します。任意の単語をタップするとその位置から再開できます。</div>
-        </div>
-      </section>
-
-      <section class="card card--reader">
-        <div class="head">
-          <h2>音声認識</h2>
-          <div class="controls controls--options">
-            <div class="control control--lang">
-              <span class="control-title">言語:</span>
-              <div class="control-body control-body--lang" role="presentation">
-                <div class="lang-toggle" role="radiogroup" aria-label="Recognition language">
-                  <span class="lang-toggle__slider" aria-hidden="true"></span>
-                  <input type="radio" id="lang-en-us" name="recLang" value="en-US" checked>
-                  <label class="lang-toggle__option" for="lang-en-us">EN-US</label>
-                  <input type="radio" id="lang-en-gb" name="recLang" value="en-GB">
-                  <label class="lang-toggle__option" for="lang-en-gb">EN-GB</label>
-                  <input type="radio" id="lang-ja-jp" name="recLang" value="ja-JP">
-                  <label class="lang-toggle__option" for="lang-ja-jp">JA-JP</label>
-                  <input type="radio" id="lang-ru-ru" name="recLang" value="ru-RU">
-                  <label class="lang-toggle__option" for="lang-ru-ru">RU-RU</label>
-                  <input type="radio" id="lang-vi-vn" name="recLang" value="vi-VN">
-                  <label class="lang-toggle__option" for="lang-vi-vn">VI-VN</label>
-                </div>
-              </div>
-            </div>
-            <div class="control">
-              <span class="control-title">モード:</span>
-              <div class="control-body control-body--segment">
-                <div class="mode-toggle" role="radiogroup" aria-label="Recognition mode">
-                  <span class="mode-toggle__slider" aria-hidden="true"></span>
-                  <input type="radio" id="mode-precise" name="recMode" value="precise" checked>
-                  <label class="mode-toggle__option" for="mode-precise">正確</label>
-                  <input type="radio" id="mode-speed" name="recMode" value="speed">
-                  <label class="mode-toggle__option" for="mode-speed">高速</label>
-                </div>
-              </div>
-            </div>
-            <div class="control">
-              <span class="control-title">スクロール:</span>
-              <div class="control-body control-body--scroll">
-                <div class="scroll-toggle" role="radiogroup" aria-label="Scroll mode">
-                  <span class="scroll-toggle__slider" aria-hidden="true"></span>
-                  <input type="radio" id="scroll-auto" name="scrollMode" value="auto" checked>
-                  <label class="scroll-toggle__option" for="scroll-auto">自動</label>
-                  <input type="radio" id="scroll-manual" name="scrollMode" value="manual">
-                  <label class="scroll-toggle__option" for="scroll-manual">手動</label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="body">
-          <div class="session-status">
-            <span class="session-status__text" id="recStatus">準備完了</span>
-          </div>
-          <div class="controls controls--mic">
-            <button id="btnMicStart">🎤 開始</button>
-            <button id="btnMicStop" disabled>■ 停止</button>
-          </div>
-          <div id="reader" class="reader" aria-live="polite"></div>
-          <div class="hint">単語をタップして位置を移動できます</div>
-        </div>
-      </section>
-    </div>
-
-    <footer>
-      <div>対応: Chrome / Edge（SpeechRecognition）。Safari 一部未対応。初回はマイク許可が必要です。</div>
-    </footer>
-  </div>
-
-  <script type="module" src="js/main.js"></script>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
