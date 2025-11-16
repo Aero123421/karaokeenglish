@@ -6,7 +6,9 @@ export function TextInputSection({
   textValue,
   onTextChange,
   onLoadSample,
-  onResetHighlight
+  onResetHighlight,
+  onContinue,
+  canContinue
 }) {
   const sampleText = `Teacher: Today's unit question is "How do we make decisions?"
 Yuna: We make decisions every day—what to wear, what to eat, what to watch.
@@ -17,30 +19,40 @@ Marcus: Sometimes we want to change or feel better about ourselves.`;
 
   const handleLoadSample = () => {
     onTextChange(sampleText);
-    onLoadSample();
+    onLoadSample?.(sampleText);
   };
 
   return (
     <section className="card card--input">
-      <div className="head">
-        <h2>テキスト（スクリプトを貼り付け）</h2>
-        <div className="controls">
-          <button onClick={handleLoadSample}>サンプル</button>
-          <button onClick={onResetHighlight}>ハイライトをリセット</button>
+      <header className="card__header">
+        <div>
+          <p className="eyebrow">Script</p>
+          <h2>読みたい英文を貼り付けるだけ</h2>
         </div>
-      </div>
-      <div className="body">
-        <textarea
-          id="textInput"
-          value={textValue}
-          onChange={(e) => onTextChange(e.target.value)}
-          spellCheck="false"
-          placeholder="ここに英文スクリプトを貼り付けてください"
-        />
-        <div className="hint">
-          単語単位で分割し、発話に応じて <b>現在の単語</b> と <b>正しく読めた単語（緑）</b>／<b>聞き取りにくかった単語（赤）</b> を表示します。任意の単語をタップするとその位置から再開できます。
+        <div className="card__actions">
+          <button type="button" className="ghost" onClick={handleLoadSample}>
+            サンプル
+          </button>
+          <button type="button" className="ghost" onClick={onResetHighlight}>
+            リセット
+          </button>
         </div>
-      </div>
+      </header>
+
+      <textarea
+        id="textInput"
+        className="script-input"
+        value={textValue}
+        onChange={(e) => onTextChange(e.target.value)}
+        spellCheck="false"
+        placeholder="英文をここにペースト"
+      />
+      <footer className="card__footer">
+        <button type="button" className="primary" disabled={!canContinue} onClick={onContinue}>
+          リーダーを開く
+        </button>
+        <p className="card__note">一度貼り付ければ、あとは声を出すだけです。</p>
+      </footer>
     </section>
   );
 }
