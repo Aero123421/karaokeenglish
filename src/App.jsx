@@ -24,6 +24,7 @@ function App() {
   const [recStatus, setRecStatus] = useState('準備完了');
   const [isMicStartDisabled, setIsMicStartDisabled] = useState(false);
   const [isMicStopDisabled, setIsMicStopDisabled] = useState(true);
+  const [stage, setStage] = useState('input');
 
   const {
     tokens,
@@ -237,9 +238,15 @@ function App() {
   /**
    * サンプルロードハンドラ
    */
-  const handleLoadSample = useCallback(() => {
-    tokenize(textValue);
-  }, [textValue, tokenize]);
+  const handleLoadSample = useCallback((sampleText) => {
+    const content = sampleText ?? '';
+    setTextValue(content);
+    const trimmed = content.trim();
+    if (trimmed) {
+      tokenize(trimmed);
+      setStage('session');
+    }
+  }, [tokenize]);
 
   /**
    * ハイライトリセットハンドラ
@@ -302,65 +309,89 @@ function App() {
     highlightTo(index, { manual: true });
   }, [highlightTo]);
 
+  const handleProceedToSession = useCallback(() => {
+    const trimmed = textValue.trim();
+    if (!trimmed) {
+      setRecStatus('⚠️ テキストを入力してください');
+      return;
+    }
+    tokenize(trimmed);
+    setStage('session');
+  }, [textValue, tokenize]);
+
+  const handleEditScript = useCallback(() => {
+    speechRecognitionRef.current?.stop();
+    setStage('input');
+    setRecStatus('準備完了');
+  }, []);
+
+  const canProceed = textValue.trim().length > 0;
+
   return (
-    <div className="wrapper">
-      <header>
+    <div className={`app-shell theme-${theme}`}>
+      <header className="hero">
         <div>
-          <h1>🎤 英語カラオケ</h1>
-          <div className="sub">音声認識で英語学習</div>
+          <p className="hero__eyebrow">Karaoke English</p>
+          <h1>読む → 声を当てる、だけの二画面</h1>
+          <p className="hero__sub">最初は英文を貼り付ける画面だけ、貼り終えたらリーダーだけに集中できます。</p>
         </div>
         <button className="theme-toggle" onClick={toggleTheme}>
-          <span className="theme-toggle-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
-          <span>{theme === 'dark' ? 'ライトモード' : 'ダークモード'}</span>
+          <span className="theme-toggle__icon" aria-hidden="true">{theme === 'dark' ? '☀️' : '🌙'}</span>
+          <span>{theme === 'dark' ? 'ライト' : 'ダーク'}</span>
         </button>
       </header>
 
-      <div className="layout">
-        <TextInputSection
-          textValue={textValue}
-          onTextChange={handleTextChange}
-          onLoadSample={handleLoadSample}
-          onResetHighlight={handleResetHighlight}
-        />
+      <main className={`flow flow--${stage}`}>
+        {stage === 'input' ? (
+          <TextInputSection
+            textValue={textValue}
+            onTextChange={handleTextChange}
+            onLoadSample={handleLoadSample}
+            onResetHighlight={handleResetHighlight}
+            onContinue={handleProceedToSession}
+            canContinue={canProceed}
+          />
+        ) : (
+          <section className="session-stage">
+            <div className="session-stage__top">
+              <div>
+                <p className="eyebrow">Session</p>
+                <h2>声に合わせて流れ続けるリーダー</h2>
+                <p className="muted">貼り付けたテキストは中央に固定され、音声認識の結果だけが変化します。</p>
+              </div>
+              <div className="session-stage__actions">
+                <button type="button" className="ghost" onClick={handleEditScript}>
+                  文章を編集
+                </button>
+              </div>
+            </div>
 
-        <SpeechRecognitionSection
-          recLang={recLang}
-          onRecLangChange={setRecLang}
-          recMode={recMode}
-          onRecModeChange={setRecMode}
-          scrollMode={scrollMode}
-          onScrollModeChange={setScrollMode}
-          recStatus={recStatus}
-          isMicStartDisabled={isMicStartDisabled}
-          isMicStopDisabled={isMicStopDisabled}
-          onMicStart={handleMicStart}
-          onMicStop={handleMicStop}
-        >
-          <div ref={readerRef}>
-            <WordRenderer
-              tokens={tokens}
-              wordStates={wordStates}
-              currentWord={currentWord}
-              onWordClick={handleWordClick}
-              gpuAnimator={servicesRef.current.gpuAnimator}
-            />
-          </div>
-        </SpeechRecognitionSection>
-      </div>
-
-      <footer>
-        <div>対応: Chrome / Edge（SpeechRecognition）。Safari 一部未対応。初回はマイク許可が必要です。</div>
-      </footer>
-
-      {/* SVG Filters */}
-      <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
-        <defs>
-          <filter id="lensDistortion" x="-50%" y="-50%" width="200%" height="200%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.01 0.01" numOctaves="2" result="noise" seed="2" />
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-        </defs>
-      </svg>
+            <SpeechRecognitionSection
+              recLang={recLang}
+              onRecLangChange={setRecLang}
+              recMode={recMode}
+              onRecModeChange={setRecMode}
+              scrollMode={scrollMode}
+              onScrollModeChange={setScrollMode}
+              recStatus={recStatus}
+              isMicStartDisabled={isMicStartDisabled}
+              isMicStopDisabled={isMicStopDisabled}
+              onMicStart={handleMicStart}
+              onMicStop={handleMicStop}
+            >
+              <div ref={readerRef} className="reader-shell">
+                <WordRenderer
+                  tokens={tokens}
+                  wordStates={wordStates}
+                  currentWord={currentWord}
+                  onWordClick={handleWordClick}
+                  gpuAnimator={servicesRef.current.gpuAnimator}
+                />
+              </div>
+            </SpeechRecognitionSection>
+          </section>
+        )}
+      </main>
     </div>
   );
 }
