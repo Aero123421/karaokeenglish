@@ -6,8 +6,13 @@ import { useState, useEffect, useCallback } from 'react';
  */
 export function useTheme() {
   const [theme, setThemeState] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved) return saved;
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved) return saved;
+    } catch (e) {
+      // localStorage might be disabled (private browsing, quota exceeded, etc.)
+      console.warn('localStorage not available:', e);
+    }
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
     }
@@ -24,7 +29,12 @@ export function useTheme() {
       document.documentElement.removeAttribute('data-theme');
     }
 
-    localStorage.setItem('theme', theme);
+    try {
+      localStorage.setItem('theme', theme);
+    } catch (e) {
+      // localStorage might be disabled (private browsing, quota exceeded, etc.)
+      console.warn('Failed to save theme to localStorage:', e);
+    }
 
     // 次フレームでトランジション再有効化
     requestAnimationFrame(() => {

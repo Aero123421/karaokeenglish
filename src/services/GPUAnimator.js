@@ -5,7 +5,7 @@
 
 export class GPUAnimator {
   constructor() {
-    this.animationFrameId = null;
+    // No initialization needed
   }
 
   /**

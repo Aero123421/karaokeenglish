@@ -117,7 +117,7 @@ function App() {
         speechRecognitionRef.current?.stop();
       }
     };
-  }, [normalizedWords, recMode]);
+  }, [normalizedWords, recMode, highlightTo]);
 
   // スクロールモード変更
   useEffect(() => {
@@ -269,9 +269,14 @@ function App() {
    * マイク開始ハンドラ
    */
   const handleMicStart = useCallback(async () => {
+    // Prevent race condition - check if already starting/started
+    if (isMicStartDisabled) {
+      return;
+    }
+
     const text = textValue.trim();
     if (!text) {
-      alert('テキストを入力してください。');
+      setRecStatus('⚠️ テキストを入力してください');
       return;
     }
 
@@ -281,7 +286,7 @@ function App() {
     }
 
     await speechRecognitionRef.current?.start({ lang: recLang });
-  }, [textValue, tokens.length, tokenize, recLang, stateRef]);
+  }, [textValue, tokens.length, tokenize, recLang, stateRef, isMicStartDisabled]);
 
   /**
    * マイク停止ハンドラ

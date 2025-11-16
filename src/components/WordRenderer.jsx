@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 
 /**
  * Word Renderer Component
@@ -32,19 +32,24 @@ export function WordRenderer({ tokens, wordStates, currentWord, onWordClick, gpu
     });
   }, [wordStates, currentWord]);
 
-  const getWordIndex = (tokenIndex) => {
-    let count = 0;
-    for (let i = 0; i <= tokenIndex; i++) {
-      if (tokens[i]?.type === 'word') count++;
-    }
-    return count - 1;
-  };
+  // Pre-calculate word indices to avoid O(n²) complexity
+  const tokenToWordIndex = useMemo(() => {
+    const mapping = new Map();
+    let wordCount = 0;
+    tokens.forEach((token, idx) => {
+      if (token.type === 'word') {
+        mapping.set(idx, wordCount);
+        wordCount++;
+      }
+    });
+    return mapping;
+  }, [tokens]);
 
   return (
     <div ref={readerRef}>
       {tokens.map((token, idx) => {
         if (token.type === 'word') {
-          const wordIdx = getWordIndex(idx);
+          const wordIdx = tokenToWordIndex.get(idx);
           const state = wordStates[wordIdx] || 'pending';
           const isActive = wordIdx === currentWord;
 
