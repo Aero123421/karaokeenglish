@@ -5,6 +5,7 @@
   "description": "English Karaoke - Speech recognition based text highlighting",
   "scripts": {
     "dev": "npx http-server . -p 8080 -o",
-    "start": "npx http-server . -p 8080"
+    "start": "npx http-server . -p 8080",
+    "build": "mkdir -p dist && cp -r index.html public dist/ && cp -r testPhoto dist/ 2>/dev/null || true"
   }
 }
