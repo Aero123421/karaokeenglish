@@ -134,6 +134,12 @@ const MATCH_CONSTANTS = {
 
 // ===== Application State =====
 
+/**
+ * Centralized application state object.
+ * Using a plain object for simplicity in this single-file application.
+ * This approach provides direct access to state properties while keeping
+ * all state in one place for easy debugging and resetting.
+ */
 const appState = {
   // Text and tokens
   tokens: [],
@@ -664,10 +670,14 @@ function handleRecognizerError(ev) {
     appState.shouldAutoRestart = false;
     updateStatus('❌ マイクの使用が拒否されました');
   } else if (ev.error === 'no-speech') {
-    // no-speechエラーは無視して継続
+    // no-speechエラーは認識を継続するために無視する
+    // これがないと、一文字読み上げ後に停止する問題が発生する
+    // Web Speech APIは無音が続くとno-speechエラーを発生させるが、
+    // ユーザーはまだ話し続ける可能性があるため、認識を維持する
     updateStatus('🎤 音声が検出されませんでした。話し続けてください');
   } else if (ev.error === 'aborted') {
-    // abortedエラーは無視
+    // abortedエラーは手動停止または自動再接続時に発生する
+    // これは正常な動作の一部であり、エラーとして扱わない
     console.log('Recognition aborted');
   } else {
     updateStatus(`❌ エラー: ${ev.error}`);
