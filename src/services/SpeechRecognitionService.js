@@ -216,6 +216,7 @@ export class SpeechRecognitionService {
    * 認識開始ハンドラ
    */
   handleRecognizerStart() {
+    this.appState.starting = false;
     this.appState.recognizing = true;
     this.appState.pendingGap = false;
     this.appState.unmatchedCount = 0;
@@ -244,6 +245,7 @@ export class SpeechRecognitionService {
    * 認識終了ハンドラ
    */
   handleRecognizerEnd() {
+    this.appState.starting = false;
     this.appState.recognizing = false;
     this.appState.clearTimers();
 
@@ -280,6 +282,7 @@ export class SpeechRecognitionService {
    * @param {Event} ev - エラーイベント
    */
   handleRecognizerError(ev) {
+    this.appState.starting = false;
     this.errorLogger.showError(ev.error, 'speech-recognition');
 
     if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
@@ -440,10 +443,12 @@ export class SpeechRecognitionService {
       return;
     }
 
-    if (this.appState.recognizing) return;
+    if (this.appState.recognizing || this.appState.starting) return;
+    this.appState.starting = true;
 
     const permissionOk = await this.primeMicPermission();
     if (!permissionOk && !this.appState.permissionPrimed) {
+      this.appState.starting = false;
       if (this.onStatusUpdate) {
         this.onStatusUpdate('マイクが許可されていません');
       }
@@ -461,6 +466,7 @@ export class SpeechRecognitionService {
     try {
       this.appState.recognizer.start();
     } catch (err) {
+      this.appState.starting = false;
       this.errorLogger.showError(err, 'speech-recognition-start');
       this.appState.shouldAutoRestart = false;
 
@@ -472,6 +478,7 @@ export class SpeechRecognitionService {
    * 音声認識を停止
    */
   stop() {
+    this.appState.starting = false;
     this.appState.userStopRequested = true;
     this.appState.shouldAutoRestart = false;
     this.appState.clearTimers();

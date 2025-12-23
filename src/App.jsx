@@ -162,6 +162,7 @@ function App() {
       pendingGap: stateRef.current.pendingGap,
       recognizer: null,
       recognizing: false,
+      starting: false,
       shouldAutoRestart: false,
       userStopRequested: false,
       permissionPrimed: false,
