@@ -39,7 +39,8 @@ function App() {
     tokenize,
     updateWordState,
     updateWordStateRange,
-    resetAllWordStates
+    resetAllWordStates,
+    resetSpeedState
   } = useAppState();
 
   const { theme, toggleTheme } = useTheme();
@@ -179,6 +180,10 @@ function App() {
           clearTimeout(appStateForService.idleTimer);
           appStateForService.idleTimer = null;
         }
+      },
+      resetSpeedState: () => {
+        resetSpeedState();
+        appStateForService.speedState = stateRef.current.speedState;
       }
     };
 
