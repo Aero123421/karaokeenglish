@@ -360,6 +360,23 @@ function updateWordStyles() {
 
 // ===== Highlighting =====
 
+/**
+ * Schedule scroll state reset after smooth scroll animation completes
+ */
+function scheduleScrollReset() {
+  // Clear any existing scroll timer
+  if (appState.scrollTimer) {
+    clearTimeout(appState.scrollTimer);
+  }
+  
+  // Reset scrolling flag after animation completes
+  // Smooth scroll typically takes 300-500ms
+  appState.scrollTimer = setTimeout(() => {
+    appState.isScrolling = false;
+    appState.scrollTimer = null;
+  }, 500);
+}
+
 function highlightTo(index, options = {}) {
   const { manual = false, outcome = 'match', markSkipped = true, confidence = 0.7 } = options;
   const wordSpans = elements.reader.querySelectorAll('.word');
@@ -404,18 +421,7 @@ function highlightTo(index, options = {}) {
   if (appState.autoScrollEnabled && !appState.isScrolling) {
     appState.isScrolling = true;
     wordSpans[index].scrollIntoView({ block: 'center', behavior: 'smooth' });
-    
-    // Clear any existing scroll timer
-    if (appState.scrollTimer) {
-      clearTimeout(appState.scrollTimer);
-    }
-    
-    // Reset scrolling flag after animation completes
-    // Smooth scroll typically takes 300-500ms
-    appState.scrollTimer = setTimeout(() => {
-      appState.isScrolling = false;
-      appState.scrollTimer = null;
-    }, 500);
+    scheduleScrollReset();
   }
 
   updateWordStyles();
@@ -440,17 +446,7 @@ function rewindHighlight(targetIndex, wordSpans) {
     if (appState.autoScrollEnabled && !appState.isScrolling) {
       appState.isScrolling = true;
       wordSpans[clamped].scrollIntoView({ block: 'center', behavior: 'smooth' });
-      
-      // Clear any existing scroll timer
-      if (appState.scrollTimer) {
-        clearTimeout(appState.scrollTimer);
-      }
-      
-      // Reset scrolling flag after animation completes
-      appState.scrollTimer = setTimeout(() => {
-        appState.isScrolling = false;
-        appState.scrollTimer = null;
-      }, 500);
+      scheduleScrollReset();
     }
   }
 
