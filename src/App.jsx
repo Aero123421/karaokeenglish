@@ -185,7 +185,6 @@ function App() {
     appStateForService.resetSpeedState = () => {
       resetSpeedState();
       appStateForService.speedState = stateRef.current.speedState;
-      return appStateForService.speedState;
     };
 
     speechRecognitionRef.current = new SpeechRecognitionService(
