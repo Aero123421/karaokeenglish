@@ -180,11 +180,11 @@ function App() {
           clearTimeout(appStateForService.idleTimer);
           appStateForService.idleTimer = null;
         }
+      },
+      resetSpeedState: () => {
+        resetSpeedState();
+        appStateForService.speedState = stateRef.current.speedState;
       }
-    };
-    appStateForService.resetSpeedState = () => {
-      resetSpeedState();
-      appStateForService.speedState = stateRef.current.speedState;
     };
 
     speechRecognitionRef.current = new SpeechRecognitionService(
