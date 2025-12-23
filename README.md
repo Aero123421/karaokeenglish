@@ -54,6 +54,45 @@ npx http-server . -p 8080
 
 ブラウザで `http://localhost:8080` にアクセスしてください。
 
+## デプロイ
+
+このプロジェクトは GitHub Pages と Cloudflare Pages の両方にデプロイできます。
+
+### GitHub Pages
+
+GitHub Actions により自動デプロイされます。`main` または `master` ブランチにプッシュすると、自動的にビルドとデプロイが実行されます。
+
+1. リポジトリの Settings > Pages で GitHub Pages を有効化
+2. Source を "GitHub Actions" に設定
+3. `main` または `master` ブランチにプッシュ
+
+### Cloudflare Pages
+
+Cloudflare Pages ダッシュボードから手動でセットアップするか、Wrangler CLI を使用できます。
+
+#### Cloudflare Pages ダッシュボード経由
+
+1. [Cloudflare Pages](https://pages.cloudflare.com/) にアクセス
+2. GitHub リポジトリを接続
+3. ビルド設定:
+   - **Build command**: `npm run build`
+   - **Build output directory**: `dist`
+4. デプロイを開始
+
+#### Wrangler CLI 経由
+
+```bash
+# Wrangler のインストール（初回のみ）
+npm install -g wrangler
+
+# Cloudflare にログイン
+wrangler login
+
+# デプロイ
+npm run build
+wrangler pages deploy dist --project-name=karaokeenglish
+```
+
 詳細な技術情報は`docs`ディレクトリを参照してください。
 
 ## ライセンス
