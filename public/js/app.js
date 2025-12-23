@@ -171,6 +171,10 @@ const appState = {
   restartTimer: null,
   idleTimer: null,
 
+  // Auto-scroll state
+  isScrolling: false,
+  scrollTimer: null,
+
   // Confidence interpolation
   confidenceHistory: [],
   maxHistorySize: 10,
@@ -187,6 +191,10 @@ const appState = {
     if (this.idleTimer) {
       clearTimeout(this.idleTimer);
       this.idleTimer = null;
+    }
+    if (this.scrollTimer) {
+      clearTimeout(this.scrollTimer);
+      this.scrollTimer = null;
     }
   },
 
@@ -393,8 +401,21 @@ function highlightTo(index, options = {}) {
   appState.pendingGap = false;
   appState.unmatchedCount = 0;
 
-  if (appState.autoScrollEnabled) {
+  if (appState.autoScrollEnabled && !appState.isScrolling) {
+    appState.isScrolling = true;
     wordSpans[index].scrollIntoView({ block: 'center', behavior: 'smooth' });
+    
+    // Clear any existing scroll timer
+    if (appState.scrollTimer) {
+      clearTimeout(appState.scrollTimer);
+    }
+    
+    // Reset scrolling flag after animation completes
+    // Smooth scroll typically takes 300-500ms
+    appState.scrollTimer = setTimeout(() => {
+      appState.isScrolling = false;
+      appState.scrollTimer = null;
+    }, 500);
   }
 
   updateWordStyles();
@@ -416,8 +437,20 @@ function rewindHighlight(targetIndex, wordSpans) {
 
   if (clamped >= 0) {
     wordSpans[clamped].classList.add('word--active', 'active');
-    if (appState.autoScrollEnabled) {
+    if (appState.autoScrollEnabled && !appState.isScrolling) {
+      appState.isScrolling = true;
       wordSpans[clamped].scrollIntoView({ block: 'center', behavior: 'smooth' });
+      
+      // Clear any existing scroll timer
+      if (appState.scrollTimer) {
+        clearTimeout(appState.scrollTimer);
+      }
+      
+      // Reset scrolling flag after animation completes
+      appState.scrollTimer = setTimeout(() => {
+        appState.isScrolling = false;
+        appState.scrollTimer = null;
+      }, 500);
     }
   }
 
