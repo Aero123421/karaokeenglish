@@ -315,6 +315,7 @@ select {
   padding: 0.05rem 0.2rem;
   border-radius: 10px;
   transition: background 0.2s ease, color 0.2s ease;
+  cursor: pointer;
 }
 
 .word--pending {
@@ -350,6 +351,10 @@ button:focus-visible,
 .theme-toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
+}
+
+.hidden {
+  display: none !important;
 }
 
 @media (max-width: 720px) {

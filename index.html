@@ -1,17 +1,118 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; media-src 'self';">
   <title>英語カラオケ - English Karaoke</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50%25' x='50%25' dominant-baseline='middle' text-anchor='middle' font-size='44'%3E%F0%9F%8E%A4%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="public/css/style.css">
 </head>
 <body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.jsx"></script>
+  <div class="app-shell">
+    <!-- Header -->
+    <header class="hero">
+      <div>
+        <p class="hero__eyebrow">Karaoke English</p>
+        <h1>読む → 声を当てる、だけの二画面</h1>
+        <p class="hero__sub">最初は英文を貼り付ける画面だけ、貼り終えたらリーダーだけに集中できます。</p>
+      </div>
+      <button id="themeToggle" class="theme-toggle">
+        <span id="themeIcon" class="theme-toggle__icon" aria-hidden="true">🌙</span>
+        <span id="themeText">ダーク</span>
+      </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flow">
+      <!-- Input Stage -->
+      <section id="inputStage" class="card card--input">
+        <header class="card__header">
+          <div>
+            <p class="eyebrow">Script</p>
+            <h2>読みたい英文を貼り付けるだけ</h2>
+          </div>
+          <div class="card__actions">
+            <button id="btnSample" type="button" class="ghost">サンプル</button>
+            <button id="btnReset" type="button" class="ghost">リセット</button>
+          </div>
+        </header>
+
+        <textarea
+          id="textInput"
+          class="script-input"
+          spellcheck="false"
+          placeholder="英文をここにペースト"
+        ></textarea>
+
+        <footer class="card__footer">
+          <button id="btnContinue" type="button" class="primary" disabled>リーダーを開く</button>
+          <p class="card__note">一度貼り付ければ、あとは声を出すだけです。</p>
+        </footer>
+      </section>
+
+      <!-- Session Stage -->
+      <section id="sessionStage" class="session-stage hidden">
+        <div class="session-stage__top">
+          <div>
+            <p class="eyebrow">Session</p>
+            <h2>声に合わせて流れ続けるリーダー</h2>
+            <p class="muted">貼り付けたテキストは中央に固定され、音声認識の結果だけが変化します。</p>
+          </div>
+          <div class="session-stage__actions">
+            <button id="btnEditScript" type="button" class="ghost">文章を編集</button>
+          </div>
+        </div>
+
+        <section class="session-card">
+          <div class="session-card__controls">
+            <div id="recStatus" class="session-card__status" role="status" aria-live="polite">
+              準備完了
+            </div>
+            <div class="session-card__mic">
+              <button id="btnMicStart" class="primary">再生開始</button>
+              <button id="btnMicStop" class="quiet" disabled>停止</button>
+            </div>
+          </div>
+
+          <div class="session-card__options">
+            <label>
+              <span>言語</span>
+              <select id="recLangSelect">
+                <option value="en-US">EN-US</option>
+                <option value="en-GB">EN-GB</option>
+                <option value="ja-JP">JA-JP</option>
+                <option value="ru-RU">RU-RU</option>
+                <option value="vi-VN">VI-VN</option>
+              </select>
+            </label>
+            <label>
+              <span>モード</span>
+              <select id="recModeSelect">
+                <option value="precise">正確モード</option>
+                <option value="speed">高速モード</option>
+              </select>
+            </label>
+            <label>
+              <span>スクロール</span>
+              <select id="scrollModeSelect">
+                <option value="auto">自動スクロール</option>
+                <option value="manual">手動スクロール</option>
+              </select>
+            </label>
+          </div>
+
+          <div id="reader" class="reader" aria-live="polite">
+            <!-- Words will be rendered here -->
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="public/js/app.js"></script>
 </body>
 </html>
