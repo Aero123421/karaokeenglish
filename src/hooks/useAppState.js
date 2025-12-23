@@ -1,6 +1,19 @@
 import { useState, useCallback, useRef } from 'react';
 import { normalizeForMatch } from '../utils/stringMatching';
 
+export function createSpeedState() {
+  return {
+    history: [],
+    map: [],
+    lastReliable: -1,
+    anchor: -1,
+    missCount: 0,
+    stability: 0,
+    lastInputTs: 0,
+    lastEmitTs: 0
+  };
+}
+
 /**
  * Application State Hook
  * アプリケーション状態管理Hook
@@ -20,16 +33,7 @@ export function useAppState() {
     pendingGap: false,
     lastSourceText: '',
     lastSpeedNorm: '',
-    speedState: {
-      history: [],
-      map: [],
-      lastReliable: -1,
-      anchor: -1,
-      missCount: 0,
-      stability: 0,
-      lastInputTs: 0,
-      lastEmitTs: 0
-    }
+    speedState: createSpeedState()
   });
 
   /**
@@ -133,16 +137,7 @@ export function useAppState() {
    * Speed stateをリセット
    */
   const resetSpeedState = useCallback(() => {
-    stateRef.current.speedState = {
-      history: [],
-      map: [],
-      lastReliable: -1,
-      anchor: -1,
-      missCount: 0,
-      stability: 0,
-      lastInputTs: 0,
-      lastEmitTs: 0
-    };
+    stateRef.current.speedState = createSpeedState();
   }, []);
 
   return {
