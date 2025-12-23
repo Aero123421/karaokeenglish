@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { TextInputSection } from './components/TextInputSection';
 import { SpeechRecognitionSection } from './components/SpeechRecognitionSection';
 import { WordRenderer } from './components/WordRenderer';
-import { useAppState, createSpeedState } from './hooks/useAppState';
+import { useAppState } from './hooks/useAppState';
 import { useTheme } from './hooks/useTheme';
 import { GPUAnimator } from './services/GPUAnimator';
 import { ConfidenceHighlighter } from './services/ConfidenceHighlighter';
@@ -39,7 +39,8 @@ function App() {
     tokenize,
     updateWordState,
     updateWordStateRange,
-    resetAllWordStates
+    resetAllWordStates,
+    resetSpeedState
   } = useAppState();
 
   const { theme, toggleTheme } = useTheme();
@@ -182,10 +183,9 @@ function App() {
       }
     };
     appStateForService.resetSpeedState = () => {
-      const newState = createSpeedState();
-      stateRef.current.speedState = newState;
-      appStateForService.speedState = newState;
-      return newState;
+      resetSpeedState();
+      appStateForService.speedState = stateRef.current.speedState;
+      return appStateForService.speedState;
     };
 
     speechRecognitionRef.current = new SpeechRecognitionService(
