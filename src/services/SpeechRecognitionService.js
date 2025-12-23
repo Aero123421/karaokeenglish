@@ -273,6 +273,8 @@ export class SpeechRecognitionService {
       clearTimeout(this.appState.restartTimer);
     }
     this.appState.restartTimer = setTimeout(() => {
+      this.appState.restartTimer = null;
+      if (this.appState.starting) return;
       this.start({ resume: true, fromRestart: true });
     }, 180);
   }
@@ -443,7 +445,8 @@ export class SpeechRecognitionService {
       return;
     }
 
-    if (this.appState.recognizing || this.appState.starting) return;
+    if (this.appState.recognizing) return;
+    if (this.appState.starting) return;
     this.appState.starting = true;
 
     const permissionOk = await this.primeMicPermission();
